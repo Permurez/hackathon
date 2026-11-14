@@ -18,6 +18,7 @@ python demo_figure.py            # writes demo_overview.png
 
 | File | What it does |
 |---|---|
+| `heart_rate.py` | Heart rate over time from one `.snirf`: beat detection on the averaged pulse of the best channels, HR trend with markers, HRV, beats -> CSV |
 | `view_snirf.py` | Look inside one `.snirf`: summary (markers, channels, SCI, best heartbeat channels) + figure: Hb traces, accelerometer, spectrum, averaged pulse wave |
 | `fnirs_toolkit.py` | All feature functions (numpy arrays in, numbers out) + `load_snirf_haemo()` |
 | `synthetic.py` | Fake recordings with known ground truth (HR, RR, breath holds, artery stiffness, cohort with age/activity) |
@@ -47,6 +48,12 @@ python view_snirf.py FILE.snirf --info              # summary only
 python view_snirf.py FILE.snirf --ch S1_D1 S7_D4 --band cardiac --tmin 100 --tmax 130
 ```
 `--band`: `raw`, `vlf`, `mayer`, `resp`, `cardiac` or `LO-HI` in Hz (e.g. `0.5-8`).
+
+## Heart rate from one recording
+
+```bash
+python heart_rate.py FILE.snirf --save hr.png --csv hr.csv --zoom 500 520
+```
 
 ## Day-1 quickstart on real data
 
