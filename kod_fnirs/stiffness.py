@@ -98,6 +98,87 @@ def pulse_features(w: np.ndarray) -> dict:
             "b_a": float(b / a) if a > 0 else np.nan}
 
 
+# ---------------------------------------------------------------------------
+# Beat-shape features robust to a late reflected wave (P2 > P1)
+# ---------------------------------------------------------------------------
+# The global argmax is NOT the systolic peak when the reflected wave P2 is higher than P1
+# (e.g. subject #1: argmax at phase 0.43). Everything below is anchored to P1 or to fixed phases.
+P1_WIN = (0.10, 0.32)     # first systolic peak / inflection must lie here
+RELAX_WIN = (0.25, 1.00)  # fixed diastolic window for the PReFx-like relaxation area
+HUMP_WIN = (0.35, 0.55)   # dicrotic / reflected hump window
+
+
+def _phase_idx(n, ph):
+    return int(round(ph * (n - 1)))
+
+
+def find_p1(w):
+    """Index and type of the first systolic peak P1 of one beat (any length, trough -> trough).
+    1st choice: first local maximum in the phase window 0.10-0.32 ('peak');
+    else: the strongest bend of the upstroke = minimum of the 2nd derivative there ('shoulder')."""
+    w = np.asarray(w, float)
+    n = len(w)
+    lo, hi = _phase_idx(n, P1_WIN[0]), _phase_idx(n, P1_WIN[1])
+    pk, _ = signal.find_peaks(w, prominence=0.002 * (np.ptp(w) + 1e-30))
+    pk = pk[(pk >= lo) & (pk <= hi)]
+    if len(pk):
+        return int(pk[0]), "peak"
+    win = max(5, (n // 20) | 1)
+    d2 = np.gradient(np.gradient(signal.savgol_filter(w, win, 3)))
+    return lo + int(np.argmin(d2[lo:hi + 1])), "shoulder"
+
+
+def fixed_relax_area(w):
+    """Area between the normalised beat and the chord w(0.25) -> w(1.0). Higher = more convex
+    (bulging) diastolic decay = more elastic (PReFx-like, Fabiani 2014), independent of argmax."""
+    w = np.asarray(w, float)
+    w = (w - w.min()) / (np.ptp(w) + 1e-30)
+    ph = np.linspace(0, 1, len(w))
+    a = _phase_idx(len(w), RELAX_WIN[0])
+    seg = w[a:]
+    chord = np.linspace(seg[0], seg[-1], len(seg))
+    return float(np.trapezoid(seg - chord, ph[a:]))
+
+
+def dicrotic_hump(w, i_p1):
+    """Dicrotic / reflected hump in phase 0.35-0.55.
+    convexity = max height of the beat above the chord [P1 -> end of beat] in the window;
+    present    = a real local maximum of the beat in the window, or a local maximum of its slope
+                 (decay flattens = shoulder) there."""
+    w = np.asarray(w, float)
+    w = (w - w.min()) / (np.ptp(w) + 1e-30)
+    n = len(w)
+    lo, hi = _phase_idx(n, HUMP_WIN[0]), _phase_idx(n, HUMP_WIN[1])
+    chord = np.interp(np.arange(n), [i_p1, n - 1], [w[i_p1], w[-1]])
+    conv = float(np.max((w - chord)[lo:hi + 1]))
+    pk, _ = signal.find_peaks(w, prominence=0.005)
+    present = bool(np.any((pk >= lo) & (pk <= hi)))
+    if not present:
+        d1 = np.gradient(signal.savgol_filter(w, max(5, (n // 20) | 1), 3))
+        pk1, _ = signal.find_peaks(d1, prominence=0.02 * (np.ptp(d1) + 1e-30))
+        present = bool(np.any((pk1 >= lo) & (pk1 <= hi)))
+    return conv, present
+
+
+def beat_shape(native, fs, dur_samples, stretched):
+    """Shape features of one (averaged) beat.
+    native:  beat in its own time base [uM], trough at 0, >= dur_samples+1 samples (NOT stretched)
+    stretched: the same beat resampled to N_POINTS (phase 0..1)
+    -> crest_time_ms (foot -> P1), max_upslope_uMs (steepest rise before P1), upslope_norm [1/s]
+       (= max_upslope / amplitude), p1_phase, p1_is_peak, fixed_relax_area, hump_convexity, hump_present."""
+    x = np.asarray(native[:dur_samples + 1], float)
+    i1, kind = find_p1(x)
+    amp = float(np.ptp(x))
+    slope = float(np.max(np.gradient(x)[:max(i1, 2) + 1]) * fs)
+    ws = np.asarray(stretched, float)
+    j1 = _phase_idx(len(ws), i1 / max(dur_samples, 1))
+    conv, present = dicrotic_hump(ws, j1)
+    return {"crest_time_ms": 1000.0 * i1 / fs, "max_upslope_uMs": slope,
+            "upslope_norm": slope / amp if amp > 0 else np.nan, "p1_phase": i1 / dur_samples,
+            "p1_is_peak": kind == "peak", "fixed_relax_area": fixed_relax_area(ws),
+            "hump_convexity": conv, "hump_present": present, "argmax_phase": float(np.argmax(ws) / (len(ws) - 1))}
+
+
 def subject_id(path: Path):
     m = re.search(r"(?:^|_)(\d+)_[A-Z]{2}_", path.name)
     return int(m.group(1)) if m else None

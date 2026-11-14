@@ -5,4 +5,11 @@ x64/
 *.exe
 build/
 .vscode/
-data/cortivision/
+data/
+dane/
+intro_and_datasets_*/
+*.zip
+*.snirf
+.venv/
+__pycache__/
+*.pyc

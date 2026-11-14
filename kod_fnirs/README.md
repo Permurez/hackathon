@@ -18,6 +18,10 @@ python demo_figure.py            # writes demo_overview.png
 
 | File | What it does |
 |---|---|
+| `screening.py` | **Main pipeline** (see `../README.md`): fixed channels, Raw_30mm / Scalp_10mm / Brain_Isolated layers, P1-anchored shape features with bootstrap CI and HR correction to 75 bpm, PRV with the +-20 % IBI rule, first vs last 3 min, Spearman validation -> `cardio_out/screening_*.csv` |
+| `app.py` | Streamlit dashboard on top of `screening.py` (`streamlit run app.py`) |
+| `test_screening.py` | Late-P2 P1 detection, fixed_relax_area vs planted stiffness, IBI artefact rule |
+| `cardio_profile.py`, `cardio_report.py` | Previous version with PDF report and cards (superseded by `screening.py`) |
 | `stiffness.py` | Per-person relative arterial stiffness index from the pulse shape (supine 141.79 Hz baseline) -> CSV + age/activity validation; `test_stiffness.py` checks it on synthetic pulses |
 | `plot_pulse_age.py` | Figure: pulse decay, rise time and upstroke speed vs age + example pulses of the youngest vs oldest people (`--save pulse_age.png`) |
 | `upstroke.py` | Pulse wave over time + beat-by-beat upstroke speed and rise time (foot -> 90%) for one `.snirf` (optical volume pulse, not mmHg) |
