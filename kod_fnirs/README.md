@@ -18,6 +18,7 @@ python demo_figure.py            # writes demo_overview.png
 
 | File | What it does |
 |---|---|
+| `view_snirf.py` | Look inside one `.snirf`: summary (markers, channels, SCI, best heartbeat channels) + figure: Hb traces, accelerometer, spectrum, averaged pulse wave |
 | `fnirs_toolkit.py` | All feature functions (numpy arrays in, numbers out) + `load_snirf_haemo()` |
 | `synthetic.py` | Fake recordings with known ground truth (HR, RR, breath holds, artery stiffness, cohort with age/activity) |
 | `test_toolkit.py` | Checks each feature recovers the planted truth |
@@ -36,6 +37,16 @@ python validate_real.py --data-dir BU_DATASET_I/ --out validation.csv
 ```
 `--data-dir` = folder with the downloaded .snirf files, `--out` = per-window CSV,
 `--win` = window length in seconds (default 60).
+
+## Viewing a recording
+
+```bash
+python view_snirf.py FILE.snirf                     # summary + figure window
+python view_snirf.py FILE.snirf --save out.png      # PNG instead (Colab / no display)
+python view_snirf.py FILE.snirf --info              # summary only
+python view_snirf.py FILE.snirf --ch S1_D1 S7_D4 --band cardiac --tmin 100 --tmax 130
+```
+`--band`: `raw`, `vlf`, `mayer`, `resp`, `cardiac` or `LO-HI` in Hz (e.g. `0.5-8`).
 
 ## Day-1 quickstart on real data
 
