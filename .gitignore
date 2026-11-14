@@ -1,7 +1,6 @@
 out/
 .vs/
 x64/
-data/
 *.obj
 *.exe
 build/
