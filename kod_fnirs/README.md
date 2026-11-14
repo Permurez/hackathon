@@ -19,6 +19,7 @@ python demo_figure.py            # writes demo_overview.png
 | File | What it does |
 |---|---|
 | `stiffness.py` | Per-person relative arterial stiffness index from the pulse shape (supine 141.79 Hz baseline) -> CSV + age/activity validation; `test_stiffness.py` checks it on synthetic pulses |
+| `plot_pulse_age.py` | Figure: pulse decay, rise time and upstroke speed vs age + example pulses of the youngest vs oldest people (`--save pulse_age.png`) |
 | `heart_rate.py` | Heart rate over time from one `.snirf`: beat detection on the averaged pulse of the best channels, HR trend with markers, HRV, beats -> CSV |
 | `view_snirf.py` | Look inside one `.snirf`: summary (markers, channels, SCI, best heartbeat channels) + figure: Hb traces, accelerometer, spectrum, averaged pulse wave |
 | `fnirs_toolkit.py` | All feature functions (numpy arrays in, numbers out) + `load_snirf_haemo()` |
