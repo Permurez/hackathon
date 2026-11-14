@@ -8,3 +8,4 @@ mne-nirs>=0.6
 snirf>=0.8
 jupyterlab>=4.0
 streamlit>=1.40  # app.py dashboard
+h5py>=3.10  # src/haemo.py reads SNIRF directly
