@@ -22,6 +22,7 @@ python demo_figure.py            # writes demo_overview.png
 | `plot_pulse_age.py` | Figure: pulse decay, rise time and upstroke speed vs age + example pulses of the youngest vs oldest people (`--save pulse_age.png`) |
 | `upstroke.py` | Pulse wave over time + beat-by-beat upstroke speed and rise time (foot -> 90%) for one `.snirf` (optical volume pulse, not mmHg) |
 | `pulse_gallery.py` | One pulse-shape figure per person (10 s with upstrokes in red + overlaid beats) next to their questionnaire data, in a sortable HTML page (`--out DIR`, open `DIR/index.html`) |
+| `shape_age.py` | Pulse shape vs age: group mean shapes, pointwise correlation along the beat, PCA, Fourier harmonics, beat-to-beat similarity (`--save shape_age.png`) |
 | `heart_rate.py` | Heart rate over time from one `.snirf`: beat detection on the averaged pulse of the best channels, HR trend with markers, HRV, beats -> CSV |
 | `view_snirf.py` | Look inside one `.snirf`: summary (markers, channels, SCI, best heartbeat channels) + figure: Hb traces, accelerometer, spectrum, averaged pulse wave |
 | `fnirs_toolkit.py` | All feature functions (numpy arrays in, numbers out) + `load_snirf_haemo()` |
