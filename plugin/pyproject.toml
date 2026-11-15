@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fnirs-vascular"
+version = "0.1.0"
+description = "Vascular markers from a 10-min resting-state fNIRS recording: SNIRF in, JSON out."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=2.0", "scipy>=1.11", "h5py>=3.10"]
+
+[project.optional-dependencies]
+mne = ["mne>=1.6"]
+
+[project.scripts]
+fnirs-vascular = "fnirs_vascular.__main__:main"
+
+[tool.setuptools]
+packages = ["fnirs_vascular"]
+
+[tool.setuptools.package-data]
+fnirs_vascular = ["reference.json"]

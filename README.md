@@ -6,7 +6,9 @@ Heroes of the Brain 2026 · wyzwanie Cortivision *Breath, Brain & Body*.
 pasmo przypisywane śródbłonkowi) jest silniejszy u osób bardziej aktywnych fizycznie:
 ρ = +0,46 (p = 0,0004, ages 18–42, n = 55), 1,49× w grupie trenującej > 3 h/tydz.
 (literatura u sportowców, laser doppler w skórze: 1,5×; Kvernmo i in. 2003). Wynik niezależny od wieku,
-płci i BMI, specyficzny dla tego pasma i kanałów na czole, potwierdzony ślepym przeszukaniem 5000 hipotez.
+płci i BMI, specyficzny dla tego pasma i kanałów na czole. Wynik pochodzi z przesiewu 1350 testów i przeżywa
+korektę FDR (q = 0,026); spośród 5000 losowych hipotez tylko 1,1% daje równie silny związek z aktywnością.
+To hipoteza do potwierdzenia na nowych osobach, nie potwierdzony wynik (patrz *Ograniczenia*).
 Wynik pomocniczy: indeks fali odbitej (TI, replikacja Afkhami i in. 2021) rośnie z wiekiem (ρ = +0,38).
 To wskaźnik grupowy, nie diagnoza pojedynczej osoby.
 
@@ -25,6 +27,17 @@ python src/demo.py dane/infopack_and_data/fnirs_high_freq_supine/data/baseline/1
 
 **Dwie osie są niezależne** (korelacja ρ = −0,05): regulacja naczyń śledzi trening, indeks fali odbitej śledzi wiek
 (r = +0,36, p = 0,009, bez leków; powtarzalność 0,95).
+
+## Moduł do wpięcia: `plugin/`
+
+Pakiet `fnirs-vascular`: plik SNIRF na wejściu, JSON na wyjściu, zależności tylko numpy, scipy i h5py, ok. 0,2 s na nagranie.
+Wartości są identyczne z analizą w `src/`. Szczegóły w [`plugin/README.md`](plugin/README.md).
+
+```bash
+pip install ./plugin
+fnirs-vascular nagranie.snirf                 # JSON
+fnirs-vascular folder_badania/ --out wyniki.csv   # wszystkie .snirf w folderze (także BIDS)
+```
 
 ## Odtworzenie wyników
 
@@ -55,10 +68,15 @@ python src/demo.py dane/infopack_and_data/fnirs_high_freq_supine/data/baseline/1
 | `src/vascular.py` | rdzeń demo: oba wskaźniki dla jednego nagrania, grupa odniesienia, wykresy |
 | `src/app.py`, `src/demo.py` | demo: aplikacja Streamlit i wersja terminalowa |
 | `src/ti_followup.py` | indeks fali odbitej bez osób na lekach + powtarzalność (połowy nagrania) |
+| `plugin/fnirs_vascular/` | moduł do wpięcia: SNIRF → JSON, grupa odniesienia w `reference.json` |
+| `src/plugin_reference.py` | buduje `plugin/fnirs_vascular/reference.json` z danych leżących |
 
 Poprzednia wersja projektu (przesiew krążenia, Streamlit) jest w historii gita, commit `113ec9d`.
 
 ## Ograniczenia
 
 Aktywność z ankiety (Jurca 2005), badanie przekrojowe, 10 min nagrania, brak pomiaru odniesienia
-(FMD, doppler, test wysiłkowy), grupa głównie 18–42 lata. Dane hackathonu: użycie tylko do 15.11.2026.
+(FMD, doppler, test wysiłkowy), grupa głównie 18–42 lata. W osobnym zbiorze DOT (17 osób, siedząco, inny montaż,
+12 z 17 z maksymalną oceną aktywności) związek pasma z aktywnością się nie powtórzył (ρ = −0,06, `src/endo_followup.py`).
+Pojedyncze 10-minutowe nagranie mierzy pasmo z ograniczoną powtarzalnością (ICC ≈ 0,36 między czterema spoczynkami
+tego samego dnia). Dane hackathonu: użycie tylko do 15.11.2026.
