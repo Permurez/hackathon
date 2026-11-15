@@ -123,7 +123,7 @@ c1.metric("Regulacja naczyń", f"wyżej niż {sc['pct_endo']:.0f}% osób",
 c2.metric("Fala odbita (TI)", f"wyżej niż {sc['pct_ti']:.0f}% osób" if np.isfinite(sc["pct_ti"]) else "–",
           help="Wyżej = fala tętna wraca szybciej; w grupie rośnie z wiekiem. Dla jednej osoby to wskazówka.")
 c3.metric("Szansa na trening > 3 h/tydz", f"{100 * sc['prob_active']:.0f}%",
-          help="Model na jednym parametrze z fNIRS; trafia u 33 z 52 osób, których nie widział (AUC 0,67).")
+          help="Model na jednym parametrze z fNIRS, sprawdzony na osobach, których nie widział (AUC 0,67).")
 c4.metric("Tętno spoczynkowe", f"{res['hr']:.0f} /min")
 for col, kind in ((c1, "grupa"), (c2, "grupa"), (c3, "wskazowka"), (c4, "pomiar")):
     col.caption(style.badge(kind), unsafe_allow_html=True)

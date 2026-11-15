@@ -11,7 +11,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -33,7 +32,7 @@ import style  # noqa: E402
 from features import load_meta  # noqa: E402
 
 SETS = {
-    "pasmo naczyniowe z fNIRS (sam)": ["band"],
+    "pasmo naczyniowe z fNIRS": ["band"],
     "wiek, płeć, BMI": ["age", "sex_male", "bmi"],
     "wiek, płeć, BMI + tętno spoczynkowe": ["age", "sex_male", "bmi", "hr"],
     "pasmo + tętno": ["band", "hr"],
@@ -43,7 +42,6 @@ SETS = {
 LEVELS = ["niski", "średni", "wysoki"]
 LEVELS_WITH = ["niskim", "średnim", "wysokim"]   # "z ... wynikiem"
 LV3 = ["poniżej 1 h/tydz", "1–3 h/tydz", "ponad 3 h/tydz"]   # questionnaire 0-1.06 / 1.76 / 3.03
-RAMP3 = ["#9ec5f4", "#3987e5", "#184f95"]                   # ordinal: light -> dark = less -> more training
 
 
 def pl(v, f=".2f") -> str:
@@ -149,8 +147,6 @@ with st.spinner("Przygotowuję model (pierwsze uruchomienie liczy 59 nagrań)…
     table, loo_band, edges, calib = evaluate(d)
 y = d.active.to_numpy()
 full = model().fit(d[["band"]].to_numpy(float), y)
-hits = int(((loo_band >= 0.5) == y).sum())
-guess = int(max(y.sum(), len(y) - y.sum()))  # always giving the more common answer
 
 src = st.sidebar.radio("Nagranie", ["Osoba z zestawu danych", "Wgraj plik .snirf"])
 truth = None
@@ -160,7 +156,7 @@ if src.startswith("Osoba"):
     i = int(np.flatnonzero(d.subject.to_numpy() == sid)[0])
     band, p = float(d.band[i]), float(loo_band[i])
     truth = d.iloc[i]
-    st.sidebar.caption("Przewiduje model wyuczony bez tej osoby (leave-one-out).")
+    st.sidebar.caption("Przewiduje model, który nie widział tej osoby.")
 else:
     up = st.sidebar.file_uploader("Plik .snirf: 10 min spoczynku, Cortivision C23", type=["snirf"])
     if up is None:
@@ -221,12 +217,9 @@ st.caption("Czego nie pokazujemy: częstości oddechu. Z sygnału spoczynkowego 
 
 # ---------------------------------------------------------------- answer
 st.subheader("Czy ta osoba trenuje ponad 3 h tygodniowo?")
-c1, c2, c3 = st.columns(3)
+c1, c2 = st.columns(2)
 c1.metric("Przewidywanie", "trenuje > 3 h/tydz" if p >= 0.5 else "mniej niż 3 h/tydz")
 c2.metric("Prawdopodobieństwo", f"{100 * p:.0f}%")
-c3.metric("Trafność modelu", f"{hits}/{len(y)} osób",
-          help=f"Każda osoba przewidziana modelem, który jej nie widział. Dla porównania: zgadywanie zawsze "
-               f"częstszej odpowiedzi trafia {guess}/{len(y)}.")
 st.markdown(f"**Co to znaczy:** wynik tej osoby jest **{LEVELS[level]}** na tle grupy. Spośród {n_lvl} osób z "
             f"podobnym wynikiem **{100 * share:.0f}% faktycznie trenuje** ponad 3 h tygodniowo "
             f"(w całej grupie {100 * y.mean():.0f}%).")
@@ -235,38 +228,6 @@ if truth is not None:
     ok = (p >= 0.5) == bool(truth.active)
     st.markdown(f"**Ankieta tej osoby:** {act} (wiek {int(truth.age)} l.) → model "
                 f"{'**trafił**' if ok else '**nie trafił**'}.")
-
-a, b = st.columns([1.35, 1])
-with a:
-    fig, ax = plt.subplots(figsize=(7.2, 3.4))
-    rng = np.random.default_rng(1)
-    for row, (lab, m, col) in enumerate((("mniej niż 3 h/tydz", 0, V.GREY), ("trenuje > 3 h/tydz", 1, V.ORANGE))):
-        x = 100 * d.band[d.active == m]
-        ax.scatter(x, row + rng.uniform(-0.12, 0.12, len(x)), s=34, color=col, edgecolor="white", label=lab)
-    sc, lr = full.named_steps["standardscaler"], full.named_steps["logisticregression"]
-    cut = 100 * (sc.mean_[0] - sc.scale_[0] * lr.intercept_[0] / lr.coef_[0, 0])
-    ax.axvline(cut, color=V.MUTED, ls="--", lw=1)
-    ax.text(cut, 1.45, " granica decyzji modelu", fontsize=8, color=V.MUTED, va="center")
-    ax.scatter([100 * band], [0.5], s=360, marker="*", color=V.INK, zorder=5, label="ta osoba")
-    ax.set_yticks([0, 1], ["mniej niż\n3 h/tydz", "trenuje\n> 3 h/tydz"])
-    ax.set_ylim(-0.5, 1.6)
-    ax.set_xlabel("wolny rytm naczyń [% sygnału]")
-    ax.set_title(f"Grupa ucząca (zdrowi 18–42 l., n = {len(d)}) i miejsce tej osoby", fontsize=10)
-    ax.legend(fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.28), ncol=3, frameon=False)
-    fig.tight_layout()
-    st.pyplot(fig, clear_figure=True)
-with b:
-    fig, ax = plt.subplots(figsize=(4.4, 3.4))
-    ax.bar(LEVELS, [100 * s for _, s in calib], color=[V.GREY, V.BLUE, V.ORANGE])
-    ax.axhline(100 * y.mean(), color=V.MUTED, ls=":", lw=1)
-    for k, (n, s) in enumerate(calib):
-        ax.text(k, 100 * s + 2, f"{100 * s:.0f}%\n(n = {n})", ha="center", fontsize=8)
-    ax.set_ylim(0, 110)
-    ax.set_ylabel("faktycznie trenuje > 3 h/tydz [%]")
-    ax.set_xlabel("wynik modelu")
-    ax.set_title("Czy wynik modelu się sprawdza?", fontsize=10)
-    fig.tight_layout()
-    st.pyplot(fig, clear_figure=True)
 
 # ---------------------------------------------------------------- finer: three levels
 st.subheader("Dokładniej: ile godzin tygodniowo?")
@@ -278,27 +239,7 @@ st.markdown(f"**Szacunek modelu dla tej osoby:** {100 * p3[0]:.0f}% poniżej 1 h
             f"{s3['tert'][t3]}), faktycznie:** {100 * table3[t3, 0]:.0f}% / {100 * table3[t3, 1]:.0f}% / "
             f"{100 * table3[t3, 2]:.0f}%. Przy skrajnych wynikach model jest pewniejszy, niż pozwalają dane; "
             "bardziej wiarygodne są liczby z danych.")
-a, b = st.columns([1.35, 1])
-with a:
-    fig, ax = plt.subplots(figsize=(7.2, 3.0))
-    left = np.zeros(3)
-    for k in range(3):
-        ax.barh(LEVELS, 100 * table3[:, k], left=left, color=RAMP3[k], edgecolor="white", linewidth=2, label=LV3[k])
-        for row in range(3):
-            v = 100 * table3[row, k]
-            if v >= 5:
-                ax.text(left[row] + v / 2, row, f"{v:.0f}%", ha="center", va="center", fontsize=9,
-                        color="#0B1530" if k == 0 else "white")
-        left += 100 * table3[:, k]
-    ax.set_xlim(0, 100)
-    ax.set_xlabel("faktyczna odpowiedź w ankiecie [% osób]")
-    ax.set_ylabel("wynik modelu")
-    ax.set_title("Czy szacowany poziom się sprawdza? (osoby przewidziane bez siebie)", fontsize=10)
-    ax.legend(fontsize=8, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.32), frameon=False)
-    fig.tight_layout()
-    st.pyplot(fig, clear_figure=True)
-with b:
-    st.markdown(
+st.markdown(
         f"- **Kolejność się zgadza:** szacowany poziom rośnie razem z prawdziwym (ρ = {pl(s3['rho'])}, "
         f"p = {pl(s3['p'], '.3f')}). Przy niskim wyniku modelu {100 * table3[0, 0]:.0f}% osób trenuje poniżej 1 h, "
         f"przy wysokim {100 * table3[2, 0]:.0f}%.\n"
@@ -309,20 +250,20 @@ with b:
         "w danych uczących; użytkownik nadal robi tylko to jedno nagranie.")
 
 # ---------------------------------------------------------------- honesty
-st.subheader("Czy więcej danych pomaga przewidywać?")
-st.dataframe(table, hide_index=True, width="stretch")
+st.subheader("Które dane najlepiej przewidują trening?")
+show = table.drop(columns=["AUC (5-fold, 20 powtórzeń)", "trafienia"]).rename(
+    columns={"AUC (leave-one-out)": "trafność (AUC)"}).sort_values("trafność (AUC)", ascending=False)
+st.dataframe(show, hide_index=True, width="stretch")
+st.caption("Trafność (AUC): 0,5 to zgadywanie, 1,0 to bezbłędne rozpoznanie. Liczona na osobach, których model "
+           "nie widział.")
 t = table.set_index("dane wejściowe")
 best = t["AUC (leave-one-out)"].idxmax()
 dem = t.loc[["wiek, płeć, BMI", "wiek, płeć, BMI + tętno spoczynkowe"]]
 st.markdown(
-    f"- Najlepiej przewiduje: **{best}**: {t.loc[best, 'trafienia']} trafień, AUC "
-    f"{pl(t.loc[best, 'AUC (leave-one-out)'])}.\n"
-    f"- Dane osobowe (wiek, płeć, BMI, tętno): {' i '.join(dem['trafienia'])} trafień, AUC "
-    f"{pl(dem['AUC (leave-one-out)'].min())}–{pl(dem['AUC (leave-one-out)'].max())}. Zgadywanie zawsze częstszej "
-    f"odpowiedzi: {guess}/{len(y)}.\n"
-    "- **Wniosek:** nagranie fNIRS niesie informację o treningu ponad dane osobowe, ale przewaga jest umiarkowana. "
-    f"Dokładanie kolejnych cech przy {len(d)} osobach pogarsza wynik (model się przeucza), więc aplikacja używa "
-    "jednego parametru.")
+    f"- Najlepiej przewiduje **{best}** (AUC {pl(t.loc[best, 'AUC (leave-one-out)'])}).\n"
+    f"- Same dane osobowe (wiek, płeć, BMI, tętno): AUC {pl(dem['AUC (leave-one-out)'].min())}–"
+    f"{pl(dem['AUC (leave-one-out)'].max())}.\n"
+    "- **Wniosek:** nagranie fNIRS niesie informację o treningu ponad dane osobowe, ale przewaga jest umiarkowana.")
 st.caption("Uczciwie: pasmo wybrano w przesiewie na tych samych danych, więc na nowych osobach trafność będzie raczej "
            "niższa; aktywność pochodzi z ankiety; jedno nagranie ma ograniczoną powtarzalność. To wskazówka dla "
            "grupy osób z podobnym wynikiem, nie pomiar aktywności tej osoby.")
