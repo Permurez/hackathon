@@ -23,6 +23,7 @@ import style  # noqa: E402
 DOT = ROOT / "dane/infopack_and_data/dot_montage_sitting/data/RS"
 ICC_ALL_LONG = 0.36  # src/endo_followup.py: every long channel, no heartbeat criterion
 ICC_MODULE = 0.56    # this module on the same DOT rests (long channels with a clear heartbeat)
+SW_MODULE = 10.3     # pp: within-person SD of one recording, same DOT rests (sqrt of the within-person mean square)
 
 
 @st.cache_data(show_spinner=False, persist="disk")
@@ -136,8 +137,8 @@ if src.startswith("DOT"):
                "Band computed on long channels with a clear heartbeat; 18 Hz sampling is too slow for TI.")
 else:
     ups = st.sidebar.file_uploader(".snirf recordings of one person", type=["snirf"], accept_multiple_files=True)
-    if not ups or len(ups) < 2:
-        st.info("Upload at least 2 resting recordings of the same person.")
+    if not ups:
+        st.info("Upload one or more resting recordings of the same person.")
         st.stop()
     tmp = Path(tempfile.mkdtemp(prefix="fnirs_repeat_"))
     paths = []
@@ -145,9 +146,24 @@ else:
         (tmp / u.name).write_bytes(u.getvalue())
         paths.append(str(tmp / u.name))
     res = [r for r in run_many(tuple(paths)) if "error" not in r]
+    if not res:
+        st.error("None of the files could be read as a resting fNIRS recording.")
+        st.stop()
     x = np.array([100 * r["vascular_regulation"]["endothelial_band_share"] for r in res])
+    # this view uses only the vessel wave: layout and pulse-timing warnings do not apply here
+    notes = [" | ".join(w for w in r["warnings"] if not w.startswith(("Montage differs", "Sampling"))) or "OK"
+             for r in res]
     st.dataframe(pd.DataFrame({"file": [r["file"] for r in res], "vessel wave [% of signal]": x.round(1),
-                               "warnings": [" | ".join(r["warnings"]) for r in res]}), hide_index=True)
-    st.markdown(f"Mean of {len(x)} recordings: **{pl(x.mean(), '.1f')} %** (spread ± {pl(x.std(ddof=1), '.1f')} pp). "
-                f"Repeatability of this mean (with one-recording ICC {pl(ICC_ALL_LONG)}–{pl(ICC_MODULE)}): "
-                f"{pl(spearman_brown(ICC_ALL_LONG, len(x)))}–{pl(spearman_brown(ICC_MODULE, len(x)))}.")
+                               "check": notes}), hide_index=True, width="stretch")
+    k75 = k_needed(ICC_MODULE, 0.75)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Vessel wave" if len(x) == 1 else f"Mean of {len(x)} recordings", f"{pl(x.mean(), '.1f')} %")
+    c2.metric("Expected spread of one recording", f"± {pl(SW_MODULE, '.0f')} pp" if len(x) == 1
+              else f"± {pl(x.std(ddof=1), '.1f')} pp (measured)")
+    c3.metric("Recordings for a reliable value", f"{k75}")
+    rel = spearman_brown(ICC_MODULE, len(x))
+    st.markdown(
+        f"- **Repeatability of this result:** {pl(rel)} (with {len(x)} recording{'s' if len(x) > 1 else ''}; "
+        "0.75 is good).\n"
+        f"- One recording varies by about ±{pl(SW_MODULE, '.0f')} pp within a day (17 people × 4 rests). "
+        f"Average **{k75} recordings** of this person to track a change, e.g. before and after training.")
