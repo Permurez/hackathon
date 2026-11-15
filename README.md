@@ -18,12 +18,18 @@ To wskaźnik grupowy, nie diagnoza pojedynczej osoby.
 ./download_data.sh                                   # dane hackathonu (~5 GB) -> dane/
 source ~/.venvs/fnirs/bin/activate                   # Python 3.14
 pip install -r requirements.txt
-streamlit run src/app.py                             # interaktywne demo w przeglądarce
+streamlit run src/app.py                             # aplikacja: panel badacza fNIRS, trzy widoki
 python src/demo.py dane/infopack_and_data/fnirs_high_freq_supine/data/baseline/17_PK_BS_2025-08-11-12-19-59.snirf --show
 ```
-`app.py` (Streamlit) i `demo.py` (terminal) robią to samo: jedno nagranie → HbO → widmo → wolny rytm naczyń
-→ uśredniona fala tętna i fala odbita (TI) → pozycja na mapie „dwóch osi” na tle zdrowej grupy
-(18–42 l. bez leków, n = 52) + model aktywności (regresja logistyczna, AUC ≈ 0,70). Rdzeń: `src/vascular.py`.
+Aplikacja (`src/app.py`) ma trzy widoki, wszystkie na tym samym module `plugin/fnirs_vascular`:
+
+| Widok | Wejście | Co pokazuje |
+|---|---|---|
+| **Nagranie** (`src/page_recording.py`) | jeden plik .snirf | widmo, wolny rytm naczyń, uśredniona fala tętna i TI, pozycja na tle zdrowej grupy (18–42 l. bez leków, n = 52), model aktywności (AUC 0,67, leave-one-out), wnioski z przedziałem niepewności, jakość nagrania |
+| **Badanie** (`src/page_study.py`) | folder nagrań + grupy | tabela miar dla każdego uczestnika, porównanie dwóch grup z wnioskiem („grupy różnią się naczyniowo, uwzględnij jako zmienną kontrolną”), eksport CSV |
+| **Pomiar powtarzany** (`src/page_repeat.py`) | kilka nagrań tej samej osoby | powtarzalność (ICC), ile nagrań uśredniać, najmniejsza wykrywalna zmiana; demo na DOT (17 osób × 4 spoczynki) |
+
+`demo.py` (terminal) robi to samo co widok *Nagranie*. Rdzeń wykresów: `src/vascular.py`.
 
 **Dwie osie są niezależne** (korelacja ρ = −0,05): regulacja naczyń śledzi trening, indeks fali odbitej śledzi wiek
 (r = +0,36, p = 0,009, bez leków; powtarzalność 0,95).

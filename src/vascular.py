@@ -113,9 +113,9 @@ def interpret(res: dict, sc: dict) -> list[str]:
     out = [f"Regulacja naczyń (wolny rytm 0,0095–0,021 Hz): silniejsza niż u {e:.0f}% zdrowej grupy."]
     if np.isfinite(s):
         out.append(f"Fala odbita (TI): wraca {'szybciej' if s >= 50 else 'wolniej'} niż u "
-                   f"{s if s >= 50 else 100 - s:.0f}% grupy, czyli tętnice "
-                   f"{'sztywniejsze' if s >= 50 else 'bardziej elastyczne'} na tle rówieśników.")
-    out.append(f"Model (regresja logistyczna, AUC ≈ 0,70): {100 * sc['prob_active']:.0f}% szans, "
+                   f"{s if s >= 50 else 100 - s:.0f}% grupy. W grupie wyższy TI idzie w parze ze starszym wiekiem "
+                   "(sztywniejsze tętnice); dla jednej osoby to wskazówka, nie pomiar sztywności.")
+    out.append(f"Model (regresja logistyczna, AUC 0,67): {100 * sc['prob_active']:.0f}% szans, "
                "że osoba ćwiczy aerobowo ponad 3 h tygodniowo.")
     return out
 
