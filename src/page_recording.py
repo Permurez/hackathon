@@ -131,7 +131,7 @@ if len(row) and np.isfinite(row.activity.iloc[0]):
     st.caption(f"Dla porównania, ankieta tej osoby: {V.ACT.get(row.activity.iloc[0], '?')}, "
                f"wiek {int(row.age.iloc[0])} l. (model tego nie widzi).")
 
-tab1, tab2, tab3 = st.tabs(["Sygnał i fala tętna", "Dwie osie na tle grupy", "Dowody"])
+tab1, tab2 = st.tabs(["Sygnał i fala tętna", "Dwie osie na tle grupy"])
 with tab1:
     a, b = st.columns(2)
     with a:
@@ -177,21 +177,4 @@ with tab2:
             "- **Poziomo, struktura:** indeks fali odbitej. W sztywniejszych tętnicach fala odbita wraca szybciej. "
             "Rośnie z wiekiem już u osób w wieku 18–42 lat (r = +0,36), powtarzalność 0,95.\n"
             "- **Osie są niezależne** (korelacja ok. 0): trening i wiek zostawiają w sygnale dwa różne ślady.")
-with tab3:
-    st.markdown("""
-| | Regulacja (pasmo śródbłonkowe) | Struktura (indeks fali odbitej TI) |
-|---|---|---|
-| Związek | z aktywnością: ρ = +0,46, p = 0,0004 (18–42 l., n = 55) | z wiekiem: r = +0,36, p = 0,009 (bez leków, n = 52) |
-| Wielkość | 1,49× u trenujących > 3 h/tydz (literatura: 1,5×) | — |
-| Skąd wynik | przesiew 1350 testów, po korekcie FDR q = 0,026 | replikacja metody z literatury |
-| Odporność | 17 testów, 270 wariantów analizy; tylko 1,1% z 5000 losowych hipotez równie silnych | ten sam kierunek w 8/8 kanałach |
-| Inne dane | DOT (17 osób, 12 z maks. aktywnością): nie powtórzył się, ρ = −0,06 | — |
-| Powtarzalność | 0,36–0,56 (jeden 10-min pomiar, zależnie od kanałów) | 0,95 (połówki nagrania) |
-| Literatura | Stefanovska 1999, Kvernmo 2003 | Afkhami i in. 2021 |
-""")
-    a, b = st.columns(2)
-    for col, name in ((a, "fig_endothelial_activity.png"), (b, "fig_ti_age.png")):
-        if (ROOT / name).exists():
-            col.image(str(ROOT / name))
-
 st.warning(V.DISCLAIMER + " Pokazuje trend w grupie, nie liczbę godzin treningu ani sztywność tętnic konkretnej osoby.")
