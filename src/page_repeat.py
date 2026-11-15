@@ -162,3 +162,26 @@ else:
         "repeatability then reaches 0.75.")
     st.caption(f"{r['file']} · {pl(r['recording']['duration_min'], '.1f')} min · "
                + (" | ".join(notes) if notes else "recording OK"))
+
+    # the same pictures as on the Recording page, for this one file
+    try:
+        full = V.analyse(str(tmp))
+    except Exception:  # noqa: BLE001 - a file the plots cannot handle still gets the numbers above
+        full = None
+    if full is not None:
+        st.subheader("This recording")
+        a, b = st.columns(2)
+        with a:
+            st.pyplot(V.fig_signal(full), clear_figure=True)
+        with b:
+            st.pyplot(V.fig_spectrum(full), clear_figure=True)
+        a, b = st.columns([1.4, 1])
+        with a:
+            st.pyplot(V.fig_pulse(full), clear_figure=True)
+        with b:
+            st.metric("Heart rate", f"{full['hr']:.0f} /min")
+            st.metric("Beats averaged", f"{full['n_beats']}")
+            st.caption("Top: the forehead signal and its spectrum, with the slow vessel wave in orange. "
+                       "Left: hundreds of heartbeats averaged into one pulse, with the wave from the heart "
+                       "and its echo.")
+        plt.close("all")

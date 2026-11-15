@@ -54,7 +54,9 @@ def analyse(path) -> dict:
     fs = h["fs"]
     dead = {c.split()[0] for c, n in zip(h["od_channels"], h["nonpositive"]) if n}
     idx = {n: i for i, n in enumerate(h["pairs"])}
-    fore = [idx[n] for n in FOREHEAD if n not in dead]
+    fore = [idx[n] for n in FOREHEAD if n in idx and n not in dead]
+    if not fore:  # another montage: every long channel
+        fore = [i for i, (n, d) in enumerate(zip(h["pairs"], h["distance_mm"])) if n not in dead and 20 <= d <= 35]
     if not fore:
         raise ValueError("no usable forehead channel in this recording")
     x = h["hbo"][fore].mean(0)
@@ -78,7 +80,10 @@ def analyse(path) -> dict:
     beat = np.mean([ref[a:a + L] for a in tr], axis=0)
     beat = beat - np.linspace(beat[0], beat[-1], L)
     t_sys, t_refl = tim.channel_times(beat, fs)
-    TI = ti_segment(h, 0, h["time"][-1])
+    try:
+        TI = ti_segment(h, 0, h["time"][-1])
+    except (KeyError, ValueError, IndexError):  # another montage: no reference forehead channels
+        TI = np.nan
     return dict(file=path.name, subject=subject_of(path), t_min=np.arange(len(xd)) / fsd / 60, hbo=xd, f=f, p=p,
                 endo=endo, beat=(beat - beat.min()) / np.ptp(beat), beat_ms=1000 * np.arange(L) / fs,
                 t_sys=t_sys, t_refl=t_refl, TI=TI, hr=60 / period, n_beats=len(tr),
