@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import fnirs_vascular as fv  # noqa: E402
 import vascular as V  # noqa: E402
 import style  # noqa: E402
+import activity  # noqa: E402
 
 DOT = ROOT / "dane/infopack_and_data/dot_montage_sitting/data/RS"
 ICC_ALL_LONG = 0.36  # src/endo_followup.py: every long channel, no heartbeat criterion
@@ -54,9 +55,9 @@ def k_needed(icc, target):
 
 
 st.title("How reliable is one recording?")
-style.hero("Upload one recording: you get its vessel-wave value and the range a repeat recording of the same "
-           "person would most likely fall in, so you know how much to trust a single result.",
-           ["Upload one .snirf recording in the left panel", "Read its value and the likely range of a repeat",
+style.hero("Upload one recording: you get an estimate of weekly training, the vessel-wave value and the range a repeat of the same "
+           "person would most likely fall in, plus the signal and the averaged pulse.",
+           ["Upload one .snirf recording in the left panel", "Read the training estimate and the vessel wave",
             "See what it takes to track one person over time"])
 
 src = st.sidebar.radio("Data", ["Upload one recording", "Example data (DOT dataset)"])
@@ -150,10 +151,18 @@ else:
     notes = [w for w in r["warnings"] if not w.startswith(("Montage differs", "Sampling"))]
     lo, hi = max(v - SW_MODULE, 0.0), v + SW_MODULE
     k75 = k_needed(ICC_MODULE, 0.75)
-    c1, c2, c3 = st.columns(3)
+    with st.spinner("Estimating training…"):
+        est, p3, mae = activity.estimate_hours(r["vascular_regulation"]["endothelial_band_share"])
+    c0, c1, c2, c3 = st.columns(4)
+    c0.metric("Estimated aerobic training", f"{activity.hours_txt(est)} / week")
     c1.metric("Vessel wave", f"{pl(v, '.1f')} %")
     c2.metric("A repeat would likely give", f"{pl(lo, '.0f')}–{pl(hi, '.0f')} %")
     c3.metric("Repeatability of one recording", pl(ICC_MODULE))
+    st.caption(f"{style.badge('wskazowka')}training estimate, typical error ±{pl(mae, '.1f')} h · "
+               + " · ".join(f"{lab}: {100 * pv:.0f}%" for lab, pv in zip(activity.LV3, p3))
+               + ("" if r["recording"]["reference_montage"]
+                  else " · different sensor layout than the training group, so treat it as rough"),
+               unsafe_allow_html=True)
     st.markdown(
         f"- **What this means:** the same person recorded again the same day usually lands within "
         f"±{pl(SW_MODULE, '.0f')} percentage points of this value.\n"
