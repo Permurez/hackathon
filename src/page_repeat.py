@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "plugin"))
 sys.path.insert(0, str(ROOT / "src"))
 import fnirs_vascular as fv  # noqa: E402
 import vascular as V  # noqa: E402
+import style  # noqa: E402
 
 DOT = ROOT / "dane/infopack_and_data/dot_montage_sitting/data/RS"
 ICC_ALL_LONG = 0.36  # src/endo_followup.py: every long channel, no heartbeat criterion
@@ -52,9 +53,11 @@ def k_needed(icc, target):
 
 
 st.title("Pomiar powtarzany: ile nagrań potrzeba?")
-st.markdown("Żeby śledzić **jedną osobę**, np. przed i po treningu, miara musi być powtarzalna. Ten widok liczy, "
-            "jak bardzo wolny rytm naczyń zmienia się między nagraniami tej samej osoby, ile nagrań trzeba "
-            "uśrednić i jaka zmiana jest już czymś więcej niż szumem.")
+style.hero("Czy jeden pomiar wystarczy? Tu widać, jak bardzo wynik tej samej osoby zmienia się między "
+           "nagraniami z jednego dnia, ile nagrań trzeba uśrednić i jaka zmiana, np. po treningu, jest już "
+           "czymś więcej niż przypadkiem.",
+           ["Wybierz osobę: 4 nagrania z jednego dnia", "Zobacz rozrzut jej wyników na tle innych",
+            "Odczytaj, ile nagrań uśredniać"])
 
 src = st.sidebar.radio("Nagrania", ["Zestaw DOT (17 osób × 4 spoczynki w ciągu dnia)",
                                     "Wgraj kilka nagrań jednej osoby"])

@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "plugin"))
 sys.path.insert(0, str(ROOT / "src"))
 import fnirs_vascular as fv  # noqa: E402
 import vascular as V  # noqa: E402
+import style  # noqa: E402
 from features import load_meta  # noqa: E402
 
 MARKERS = {"rytm naczyń [% sygnału]": "wolny rytm naczyń (pasmo śródbłonkowe)", "TI [1/s]": "indeks fali odbitej TI"}
@@ -78,9 +79,11 @@ def fig_groups(df, col, groups, c):
 
 # ---------------------------------------------------------------- input
 st.title("Badanie: wiele nagrań naraz")
-st.markdown("Każde badanie fNIRS i tak nagrywa spoczynek. Ten widok liczy z niego **dwie miary naczyń dla każdego "
-            "uczestnika** i sprawdza, czy porównywane grupy różnią się także naczyniowo. Taka różnica może "
-            "udawać różnicę w aktywności mózgu, więc warto ją uwzględnić jako zmienną kontrolną.")
+style.hero("Masz całe badanie, np. kilkadziesiąt osób w dwóch grupach? Każde badanie fNIRS i tak nagrywa "
+           "spoczynek. Z niego aplikacja liczy dwie miary naczyń dla każdego uczestnika i mówi, czy grupy różnią "
+           "się także naczyniowo. Taka różnica może udawać różnicę w pracy mózgu, więc warto ją uwzględnić.",
+           ["Wybierz nagrania i sposób podziału na grupy", "Aplikacja liczy wszystkie nagrania (ok. 0,2 s na każde)",
+            "Przeczytaj wniosek i pobierz tabelę CSV"])
 
 src = st.sidebar.radio("Nagrania", ["Zestaw danych hackathonu (59 nagrań, leżąc)", "Wgraj własne pliki .snirf"])
 groups_df, order = None, None

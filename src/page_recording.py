@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "plugin"))
 import fnirs_vascular as fv  # noqa: E402
 import vascular as V  # noqa: E402
+import style  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 ICC_BAND, ICC_TI = 0.36, 0.95  # one 10-min recording: band across 4 rests a day (DOT, cautious value); TI split-half
@@ -93,8 +94,12 @@ st.sidebar.caption("Odniesienie: zdrowi 18–42 l. bez leków (n = 52), zbiór C
 
 # ---------------------------------------------------------------- header + analysis
 st.title("Puls pod czepkiem")
-st.markdown("**Dwie osie zdrowia naczyń z 10 minut spoczynkowego fNIRS:** jak aktywnie naczynia się regulują "
-            "(silniejsze u trenujących) i jak sztywne są tętnice (rośnie z wiekiem).")
+style.hero("10 minut spokojnego leżenia w czepku fNIRS mówi coś o naczyniach krwionośnych: jak aktywnie się "
+           "regulują (silniej u osób trenujących) i jak szybko wraca fala tętna (szybciej u starszych). "
+           "Bez dodatkowego sprzętu. To wskazówki na tle grupy, nie diagnoza.",
+           ["Wybierz osobę z zestawu albo wgraj własny plik .snirf", "Aplikacja liczy wynik w ułamku sekundy",
+            "Czytaj kafelki: przy każdej liczbie widać, na ile można jej ufać"])
+style.legend()
 
 with st.status("Analiza nagrania…", expanded=False) as status:
     status.write("1. Surowe światło → gęstość optyczna → hemoglobina HbO (własna konwersja, zgodna z MNE)")
@@ -113,13 +118,15 @@ with st.status("Analiza nagrania…", expanded=False) as status:
 sc = V.score(res, coh)
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Regulacja naczyń", f"{sc['pct_endo']:.0f}. percentyl",
-          help="Moc wolnego rytmu naczyń (pasmo przypisywane śródbłonkowi) na tle zdrowej grupy.")
-c2.metric("Sztywność tętnic (TI)", f"{sc['pct_ti']:.0f}. percentyl" if np.isfinite(sc["pct_ti"]) else "–",
-          help="Wyżej = fala odbita wraca szybciej = sztywniejsze tętnice niż u rówieśników.")
-c3.metric("Model: aeroby > 3 h/tydz", f"{100 * sc['prob_active']:.0f}%",
-          help="Regresja logistyczna na paśmie śródbłonkowym; AUC 0,67 na osobach spoza uczenia (leave-one-out).")
-c4.metric("Tętno spoczynkowe", f"{res['hr']:.0f} bpm")
+c1.metric("Regulacja naczyń", f"wyżej niż {sc['pct_endo']:.0f}% osób",
+          help="Siła wolnego rytmu naczyń (pasmo przypisywane śródbłonkowi) na tle zdrowej grupy 18–42 l.")
+c2.metric("Fala odbita (TI)", f"wyżej niż {sc['pct_ti']:.0f}% osób" if np.isfinite(sc["pct_ti"]) else "–",
+          help="Wyżej = fala tętna wraca szybciej; w grupie rośnie z wiekiem. Dla jednej osoby to wskazówka.")
+c3.metric("Szansa na trening > 3 h/tydz", f"{100 * sc['prob_active']:.0f}%",
+          help="Model na jednym parametrze z fNIRS; trafia u 33 z 52 osób, których nie widział (AUC 0,67).")
+c4.metric("Tętno spoczynkowe", f"{res['hr']:.0f} /min")
+for col, kind in ((c1, "grupa"), (c2, "grupa"), (c3, "wskazowka"), (c4, "pomiar")):
+    col.caption(style.badge(kind), unsafe_allow_html=True)
 
 row = coh[coh.subject == res["subject"]]
 if len(row) and np.isfinite(row.activity.iloc[0]):

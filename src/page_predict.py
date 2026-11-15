@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT / "plugin"))
 sys.path.insert(0, str(ROOT / "src"))
 import fnirs_vascular as fv  # noqa: E402
 import vascular as V  # noqa: E402
+import style  # noqa: E402
 from features import load_meta  # noqa: E402
 
 SETS = {
@@ -123,11 +124,26 @@ def ordinal(d: pd.DataFrame):
     return y, P, (float(mu), float(sd), np.asarray(full.params)), table, summary
 
 
+@st.cache_data(show_spinner=False)
+def module_result(path: str) -> dict:
+    return fv.analyze(path)
+
+
+@st.cache_data(show_spinner=False)
+def breath_hold() -> pd.DataFrame:
+    """Per person, from the breath-hold recording of the same session (src/bh_reflex.py, src/bh_co2.py)."""
+    r = pd.read_csv(ROOT / "bh_reflex.csv").groupby("subject").agg(
+        n_holds=("duration", "size"), longest_s=("duration", "max"), hr_change=("hr_change_pct", "mean"))
+    return r.join(pd.read_csv(ROOT / "bh_co2.csv").groupby("subject").long_rise.mean().rename("hbo_rise"))
+
+
 # ---------------------------------------------------------------- data + model
 st.title("Przewidywanie aktywności z jednego nagrania")
-st.markdown("Z 10 minut spoczynku model ocenia, czy osoba **trenuje aerobowo ponad 3 h tygodniowo**. "
-            "Wejście: jeden parametr z fNIRS (wolny rytm naczyń). Obok przewidywania pokazujemy, "
-            "**jak często model ma rację** i co wynik znaczy dla osób z podobnym wynikiem.")
+style.hero("Jedno 10-minutowe nagranie, jeden profil: tętno, praca naczyń, reakcja na wstrzymanie oddechu i "
+           "szacunek, ile osoba trenuje. Przy każdej liczbie widać, czy to pomiar, porównanie z grupą, czy tylko "
+           "wskazówka, a przy przewidywaniu: jak często model ma rację.",
+           ["Wybierz osobę z zestawu albo wgraj plik .snirf", "Przeczytaj profil na górze",
+            "Niżej: czy trenuje ponad 3 h tygodniowo i dokładniej, ile"])
 with st.spinner("Przygotowuję model (pierwsze uruchomienie liczy 59 nagrań)…"):
     d = training_table()
     table, loo_band, edges, calib = evaluate(d)
@@ -164,8 +180,47 @@ else:
 
 level = int(np.digitize([p], edges)[0])
 n_lvl, share = calib[level]
+y3, P3, (mu3, sd3, par3), table3, s3 = ordinal(d)
+p3 = P3[i] if truth is not None else ord_probs(par3, (band - mu3) / sd3)
+t3 = int(np.digitize([p3 @ np.arange(3)], s3["edges"])[0])
+mod = module_result(str(V.BASE / d.file[i])) if truth is not None else r
+bhs = breath_hold()
+bh = bhs.loc[int(truth.subject)] if truth is not None and int(truth.subject) in bhs.index else None
+
+# ---------------------------------------------------------------- profile: everything one session says
+st.subheader("Wszystko, co mówi to jedno badanie")
+style.legend()
+vr, tm, q = mod["vascular_regulation"], mod["arterial_timing"], mod["recording"]
+row1, row2 = st.columns(3), st.columns(3)
+B = style.badge
+row1[0].metric("Tętno spoczynkowe", f"{mod['heart_rate_bpm']:.0f} /min")
+row1[0].caption(f"{B('pomiar')}u dorosłych w spoczynku zwykle 60–100/min", unsafe_allow_html=True)
+row1[1].metric("Aktywność", f"{100 * table3[t3, 2]:.0f}% trenuje > 3 h/tydz")
+row1[1].caption(f"{B('wskazowka')}tyle osób z {LEVELS_WITH[t3]} wynikiem faktycznie trenuje ponad 3 h tygodniowo "
+                "(szczegóły niżej)", unsafe_allow_html=True)
+row1[2].metric("Jakość nagrania", "bez ostrzeżeń" if not mod["warnings"] else f"ostrzeżenia: {len(mod['warnings'])}")
+row1[2].caption(f"{B('pomiar')}{pl(q['duration_min'], '.1f')} min, {mod['beats_used']} uderzeń serca, braki "
+                f"{pl(q['missing_samples_pct'], '.1f')}% próbek", unsafe_allow_html=True)
+pe, pt = vr["percentile_vs_reference"], tm["percentile_vs_reference"]
+row2[0].metric("Regulacja naczyń", "–" if pe is None else f"wyżej niż {pe:.0f}% osób")
+row2[0].caption(f"{B('grupa')}jedno nagranie ma dużą niepewność; przy powtórce wynik może się wyraźnie przesunąć",
+                unsafe_allow_html=True)
+row2[1].metric("Fala odbita (TI)", "–" if pt is None else f"wyżej niż {pt:.0f}% osób")
+row2[1].caption(f"{B('grupa')}wyżej = fala tętna wraca szybciej; w grupie rośnie z wiekiem; pomiar stabilny",
+                unsafe_allow_html=True)
+if bh is not None and np.isfinite(bh.hr_change):
+    rise = f"; HbO pod koniec {pl(bh.hbo_rise, '+.2f')} µM" if np.isfinite(bh.hbo_rise) else ""
+    row2[2].metric("Wstrzymanie oddechu", f"tętno {bh.hr_change:+.0f}%")
+    row2[2].caption(f"{B('pomiar')}to samo badanie, bez normy; analizowane bezdechy: {int(bh.n_holds)}, "
+                    f"najdłuższy z nich {bh.longest_s:.0f} s{rise}", unsafe_allow_html=True)
+else:
+    row2[2].metric("Wstrzymanie oddechu", "brak nagrania")
+    row2[2].caption("nagranie bezdechu z tego badania nie zostało wczytane")
+st.caption("Czego nie pokazujemy: częstości oddechu. Z sygnału spoczynkowego na leżąco nie dało się jej tu "
+           "wiarygodnie wyznaczyć (sprawdziliśmy), więc jej nie podajemy.")
 
 # ---------------------------------------------------------------- answer
+st.subheader("Czy ta osoba trenuje ponad 3 h tygodniowo?")
 c1, c2, c3 = st.columns(3)
 c1.metric("Przewidywanie", "trenuje > 3 h/tydz" if p >= 0.5 else "mniej niż 3 h/tydz")
 c2.metric("Prawdopodobieństwo", f"{100 * p:.0f}%")
@@ -215,12 +270,9 @@ with b:
 
 # ---------------------------------------------------------------- finer: three levels
 st.subheader("Dokładniej: ile godzin tygodniowo?")
-y3, P3, (mu3, sd3, par3), table3, s3 = ordinal(d)
-p3 = P3[i] if truth is not None else ord_probs(par3, (band - mu3) / sd3)
 m1, m2, m3 = st.columns(3)
 for col, lab, v in zip((m1, m2, m3), LV3, p3):
     col.metric(lab, f"{100 * v:.0f}%")
-t3 = int(np.digitize([p3 @ np.arange(3)], s3["edges"])[0])
 st.markdown(f"**Szacunek modelu dla tej osoby:** {100 * p3[0]:.0f}% poniżej 1 h, {100 * p3[1]:.0f}% 1–3 h, "
             f"{100 * p3[2]:.0f}% ponad 3 h tygodniowo. **W danych, wśród osób z {LEVELS_WITH[t3]} wynikiem (n = "
             f"{s3['tert'][t3]}), faktycznie:** {100 * table3[t3, 0]:.0f}% / {100 * table3[t3, 1]:.0f}% / "
@@ -236,7 +288,7 @@ with a:
             v = 100 * table3[row, k]
             if v >= 5:
                 ax.text(left[row] + v / 2, row, f"{v:.0f}%", ha="center", va="center", fontsize=9,
-                        color=V.INK if k == 0 else "white")
+                        color="#0B1530" if k == 0 else "white")
         left += 100 * table3[:, k]
     ax.set_xlim(0, 100)
     ax.set_xlabel("faktyczna odpowiedź w ankiecie [% osób]")
@@ -253,8 +305,8 @@ with b:
         f"- **Dokładnej kategorii jeszcze nie:** trafia w {100 * s3['acc']:.0f}%, tyle co zgadywanie zawsze "
         f"„ponad 3 h” ({100 * s3['base']:.0f}%).\n"
         f"- **Dlaczego:** ankieta ma 5 przedziałów, w grupie {s3['counts'][0]} / {s3['counts'][1]} / "
-        f"{s3['counts'][2]} osób na trzech poziomach. Do godzin co do jednej potrzebny jest pomiar ciągły "
-        "(np. tydzień z akcelerometrem) i więcej osób; to proof of concept.")
+        f"{s3['counts'][2]} osób na trzech poziomach. To proof of concept: dokładniejszy model wymaga więcej osób "
+        "w danych uczących; użytkownik nadal robi tylko to jedno nagranie.")
 
 # ---------------------------------------------------------------- honesty
 st.subheader("Czy więcej danych pomaga przewidywać?")

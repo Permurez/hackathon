@@ -1,18 +1,24 @@
 """
-app.py - Streamlit entry point: one module (plugin/fnirs_vascular), three views for an fNIRS researcher.
+app.py - Streamlit entry point: one module (plugin/fnirs_vascular), four views for an fNIRS researcher.
 
-  ~/.venvs/fnirs/bin/streamlit run src/app.py
+  ~/.venvs/fnirs/bin/streamlit run src/app.py      (from the repository root, so .streamlit/config.toml applies)
 
-  Nagranie            one .snirf file -> what is in the signal, conclusions, recording quality, uncertainty
-  Badanie             many recordings -> one table, group comparison, CSV export
-  Pomiar powtarzany   the same person recorded several times -> stability, how many recordings to average
+  Nagranie                  one .snirf file -> what is in the signal, conclusions, recording quality, uncertainty
+  Przewidywanie aktywności  everything one session says + does the person train > 3 h/week, with the track record
+  Badanie                   many recordings -> one table, group comparison, CSV export
+  Pomiar powtarzany         the same person recorded several times -> stability, how many recordings to average
 """
+import sys
 from pathlib import Path
 
 import streamlit as st
 
-st.set_page_config(page_title="Puls pod czepkiem", layout="wide")
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import style  # noqa: E402
+
+st.set_page_config(page_title="Puls pod czepkiem", page_icon="🫀", layout="wide")
+style.apply()
 st.navigation([
     st.Page(HERE / "page_recording.py", title="Nagranie", icon=":material/monitor_heart:", default=True),
     st.Page(HERE / "page_predict.py", title="Przewidywanie aktywności", icon=":material/directions_run:"),
