@@ -82,7 +82,7 @@ st.markdown("Każde badanie fNIRS i tak nagrywa spoczynek. Ten widok liczy z nie
             "uczestnika** i sprawdza, czy porównywane grupy różnią się także naczyniowo. Taka różnica może "
             "udawać różnicę w aktywności mózgu, więc warto ją uwzględnić jako zmienną kontrolną.")
 
-src = st.sidebar.radio("Nagrania", ["Zestaw danych hackathonu (60 osób, leżąc)", "Wgraj własne pliki .snirf"])
+src = st.sidebar.radio("Nagrania", ["Zestaw danych hackathonu (59 nagrań, leżąc)", "Wgraj własne pliki .snirf"])
 groups_df, order = None, None
 if src.startswith("Zestaw"):
     paths = sorted(str(p) for p in V.BASE.glob("*.snirf"))
