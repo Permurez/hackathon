@@ -16,9 +16,15 @@ To wskaźnik grupowy, nie diagnoza pojedynczej osoby.
 ./download_data.sh                                   # dane hackathonu (~5 GB) -> dane/
 source ~/.venvs/fnirs/bin/activate                   # Python 3.14
 pip install -r requirements.txt
-python src/demo.py dane/infopack_and_data/fnirs_high_freq_supine/data/baseline/7_SR_BS_2025-07-03-14-13-26.snirf
+streamlit run src/app.py                             # interaktywne demo w przeglądarce
+python src/demo.py dane/infopack_and_data/fnirs_high_freq_supine/data/baseline/17_PK_BS_2025-08-11-12-19-59.snirf --show
 ```
-`demo.py`: jedno nagranie → HbO → widmo → moc pasma, percentyl w grupie, prawdopodobieństwo modelu.
+`app.py` (Streamlit) i `demo.py` (terminal) robią to samo: jedno nagranie → HbO → widmo → wolny rytm naczyń
+→ uśredniona fala tętna i fala odbita (TI) → pozycja na mapie „dwóch osi” na tle zdrowej grupy
+(18–42 l. bez leków, n = 52) + model aktywności (regresja logistyczna, AUC ≈ 0,70). Rdzeń: `src/vascular.py`.
+
+**Dwie osie są niezależne** (korelacja ρ = −0,05): regulacja naczyń śledzi trening, indeks fali odbitej śledzi wiek
+(r = +0,36, p = 0,009, bez leków; powtarzalność 0,95).
 
 ## Odtworzenie wyników
 
@@ -46,7 +52,9 @@ python src/demo.py dane/infopack_and_data/fnirs_high_freq_supine/data/baseline/7
 | `src/subgroup.py`, `src/plot_correlations.py` | mapy korelacji (grupa 18–42) |
 | `src/endo_followup.py` | stabilność pasma w ciągu dnia (dane DOT) |
 | `src/bh_reflex.py`, `src/bh_co2.py`, `src/spiroximetry.py` | oddech i bezdech: reakcja HbO na CO₂, tętno, saturacja żylna |
-| `src/demo.py` | demo na jednym nagraniu |
+| `src/vascular.py` | rdzeń demo: oba wskaźniki dla jednego nagrania, grupa odniesienia, wykresy |
+| `src/app.py`, `src/demo.py` | demo: aplikacja Streamlit i wersja terminalowa |
+| `src/ti_followup.py` | indeks fali odbitej bez osób na lekach + powtarzalność (połowy nagrania) |
 
 Poprzednia wersja projektu (przesiew krążenia, Streamlit) jest w historii gita, commit `113ec9d`.
 

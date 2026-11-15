@@ -10,13 +10,18 @@ d = f.merge(pd.read_csv(ROOT / "bands_supine.csv")[["subject", "l30_hbo_endothel
 d = d[d.age < 60]
 INK, MUTED, BLUE, ORANGE = "#0b0b0b", "#52514e", "#2a78d6", "#d97706"
 plt.rcParams.update({"font.size": 11, "axes.spines.top": False, "axes.spines.right": False})
-# 1. TI vs age
+# 1. TI vs age: healthy people without any medication (TI from ti_followup.py)
+import sys; sys.path.insert(0, str(Path(__file__).resolve().parent))
+from features import load_meta
+from scipy.stats import pearsonr
+t = pd.read_csv(ROOT / "ti_followup.csv")[["subject", "TI_full"]].merge(load_meta(), on="subject")
+t = t[(t.age < 60) & (t.medication_any == 0)].dropna(subset=["TI_full"])
 fig, ax = plt.subplots(figsize=(6.4, 4.4), facecolor="white")
-ax.scatter(d.age, d.TI, s=36, color=BLUE, alpha=0.8, edgecolor="white", lw=0.6)
-k = np.polyfit(d.age, d.TI, 1); xs = np.linspace(d.age.min(), d.age.max(), 50); ax.plot(xs, np.polyval(k, xs), color=INK, lw=2)
-r, p = spearmanr(d.age, d.TI)
+ax.scatter(t.age, t.TI_full, s=36, color=BLUE, alpha=0.8, edgecolor="white", lw=0.6)
+k = np.polyfit(t.age, t.TI_full, 1); xs = np.linspace(t.age.min(), t.age.max(), 50); ax.plot(xs, np.polyval(k, xs), color=INK, lw=2)
+r, p = pearsonr(t.age, t.TI_full)
 ax.set_xlabel("wiek [lata]"); ax.set_ylabel("indeks fali odbitej TI [1/s]")
-ax.set_title(f"Fala odbita wraca szybciej u starszych (ρ = {r:+.2f}, p = {p:.3f}, n = {len(d)})", fontsize=11, color=INK)
+ax.set_title(f"Fala odbita wraca szybciej u starszych\nr = {r:+.2f}, p = {p:.3f}, n = {len(t)}, zdrowi bez leków", fontsize=11, color=INK)
 fig.tight_layout(); fig.savefig(ROOT / "fig_ti_age.png", dpi=150)
 # 2. endothelial band by activity level
 fig, ax = plt.subplots(figsize=(6.4, 4.4), facecolor="white")
