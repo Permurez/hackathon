@@ -47,7 +47,7 @@ if __name__ == "__main__":
         perm = rng.permutation(len(d)); A, B = d.iloc[perm[: len(d) // 2]], d.iloc[perm[len(d) // 2:]]
         rA, pA = stats.spearmanr(A.v, A.t); rB, pB = stats.spearmanr(B.v, B.t); rF, pF = stats.spearmanr(d.v, d.t)
         rows.append(dict(lo=lo, hi=hi, group=key[0], chrom=key[1], target=t, rho=rF, p=pF, rho_disc=rA, p_disc=pA, rho_conf=rB, p_conf=pB, n=len(d)))
-    R = pd.DataFrame(rows); R.to_csv(ROOT / "random_hypotheses.csv", index=False)
+    R = pd.DataFrame(rows); R.to_csv(ROOT / "results/random_hypotheses.csv", index=False)
     print(f"{len(R)} random hypotheses (ages 18-42)")
     print(f"full-sample p<0.05: {100*np.mean(R.p<.05):.1f}%  (chance 5%)")
     disc = R[R.p_disc < 0.05]; rep = disc[(disc.p_conf < 0.05) & (np.sign(disc.rho_conf) == np.sign(disc.rho_disc))]

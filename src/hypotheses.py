@@ -1,10 +1,10 @@
 """hypotheses.py - pre-specified literature hypotheses, one run, partial Spearman (age/sex/BMI), permutation, FDR in family."""
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr, pearsonr, false_discovery_control
-f = pd.read_csv("features.csv")
-b = pd.read_csv("bands_supine.csv")
-t = pd.read_csv("timing_index.csv")[["subject", "TI"]]
-c = pd.read_csv("bh_co2.csv").groupby("subject").long_rise.mean().rename("bh_hbo_rise").reset_index()
+f = pd.read_csv("results/features.csv")
+b = pd.read_csv("results/bands_supine.csv")
+t = pd.read_csv("results/timing_index.csv")[["subject", "TI"]]
+c = pd.read_csv("results/bh_co2.csv").groupby("subject").long_rise.mean().rename("bh_hbo_rise").reset_index()
 df = f.merge(b, on="subject", how="left").merge(t, on="subject", how="left").merge(c, on="subject", how="left")
 H = [("H1", "hr_bpm", "activity", -1), ("H2", "rmssd_ms", "activity", +1),
      ("H3", "l30_hbo_endothelial_rel", "bmi", -1), ("H4", "l30_hbo_endothelial_rel", "age", -1),
@@ -23,4 +23,4 @@ for h, x, y, sign in H:
                      rho_lt60=r60, direction_ok=np.sign(r) == sign, n=len(d)))
 R = pd.DataFrame(rows); R["q_fdr"] = false_discovery_control(R.p)
 pd.set_option("display.width", 220); print(R.round(3).to_string(index=False))
-R.to_csv("hypotheses.csv", index=False)
+R.to_csv("results/hypotheses.csv", index=False)

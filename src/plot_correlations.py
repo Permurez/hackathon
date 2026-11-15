@@ -58,7 +58,7 @@ CMAP = LinearSegmentedColormap.from_list("div", ["#104281", "#2a78d6", "#9ec5f4"
                                                  "#f4b4b3", "#e34948", "#9c2424"])
 
 
-def draw(ROWS, out, title, csv="correlations.csv"):
+def draw(ROWS, out, title, csv="results/correlations.csv"):
     c = pd.read_csv(ROOT / csv)
     rho = c.pivot(index="feature", columns="target", values="rho")
     q = c.pivot(index="feature", columns="target", values="q_fdr")
@@ -148,5 +148,5 @@ def hb_rows():
 
 
 if __name__ == "__main__":
-    draw(ROWS, "correlations_pl.png", "Co sygnał fNIRS z czoła mówi o osobie? Parametry ogólne × 16 cech, 59 osób")
-    draw(hb_rows(), "correlations_hb.png", "HbO, HbR i HbT w trzech warstwach × 16 cech, 59 osób (tylko ZMIANY: CW nie mierzy poziomu)")
+    draw(ROWS, "results/correlations_pl.png", "Co sygnał fNIRS z czoła mówi o osobie? Parametry ogólne × 16 cech, 59 osób")
+    draw(hb_rows(), "results/correlations_hb.png", "HbO, HbR i HbT w trzech warstwach × 16 cech, 59 osób (tylko ZMIANY: CW nie mierzy poziomu)")

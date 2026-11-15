@@ -142,9 +142,9 @@ def module_result(path: str) -> dict:
 @st.cache_data(show_spinner=False)
 def breath_hold() -> pd.DataFrame:
     """Per person, from the breath-hold recording of the same session (src/bh_reflex.py, src/bh_co2.py)."""
-    r = pd.read_csv(ROOT / "bh_reflex.csv").groupby("subject").agg(
+    r = pd.read_csv(ROOT / "results/bh_reflex.csv").groupby("subject").agg(
         n_holds=("duration", "size"), longest_s=("duration", "max"), hr_change=("hr_change_pct", "mean"))
-    return r.join(pd.read_csv(ROOT / "bh_co2.csv").groupby("subject").long_rise.mean().rename("hbo_rise"))
+    return r.join(pd.read_csv(ROOT / "results/bh_co2.csv").groupby("subject").long_rise.mean().rename("hbo_rise"))
 
 
 # ---------------------------------------------------------------- data + model

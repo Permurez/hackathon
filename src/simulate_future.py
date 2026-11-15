@@ -175,7 +175,7 @@ for a_ in ax:
 fig.suptitle("Symulacje na danych syntetycznych z parametrami z naszych danych: co musi wyjść w kolejnych badaniach",
              fontsize=11, color=INK)
 fig.tight_layout(rect=(0, 0, 1, 0.94))
-fig.savefig(ROOT / "fig_future_studies.png", dpi=150)
-print(f"\n-> {ROOT / 'fig_future_studies.png'}")
+fig.savefig(ROOT / "results/fig_future_studies.png", dpi=150)
+print(f"\n-> {ROOT / 'results/fig_future_studies.png'}")
 print(f"\nsummary: n for 80% power (questionnaire / objective): " + "; ".join(
     f"{lab}: {n_for(pow1[(lab, 'questionnaire')])} / {n_for(pow1[(lab, 'objective')])}" for lab in scen1))

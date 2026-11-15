@@ -99,7 +99,7 @@ def main():
     df = df.merge(load_meta(), on="subject")
     # Jurca et al. 2005 non-exercise CRF (METs), formula from the organisers' supplementary material
     df["CRF"] = 2.77 * df.sex_male - 0.10 * df.age - 0.17 * df.bmi - 0.03 * df.hr_fnirs + 1.00 * df.activity + 18.07
-    df.to_csv(ROOT / "timing_index.csv", index=False)
+    df.to_csv(ROOT / "results/timing_index.csv", index=False)
     d = df.dropna(subset=["TI"])
     print(f"TI obtained for {len(d)}/{len(df)} people (paper: 32/38); channels per person median {d.n_ch.median():.0f}; "
           f"TI median {d.TI.median():.2f} 1/s = {1000 / d.TI.median():.0f} ms between systolic and reflected wave")

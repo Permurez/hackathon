@@ -7,7 +7,7 @@ from scipy.stats import spearmanr
 from features import load_meta
 if __name__ == "__main__":
     with Pool(6) as pl: F = pd.DataFrame(pl.map(bands.f, sorted(glob.glob(bands.D + "*.snirf"))))
-    F.to_csv(str(Path(__file__).resolve().parents[1] / "bands_supine.csv"), index=False)
+    F.to_csv(str(Path(__file__).resolve().parents[1] / "results/bands_supine.csv"), index=False)
     df = F.merge(load_meta(), on="subject")[["l30_hbo_endothelial_rel", "activity"]].dropna()
     x, a = df.iloc[:, 0].values, df.activity.values
     rho0 = spearmanr(x, a)[0]; rng = np.random.default_rng(0); N = 2000

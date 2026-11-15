@@ -58,11 +58,11 @@ def niche(path):
 
 if __name__ == "__main__":
     with Pool(6) as p: N = pd.DataFrame(p.map(niche, sorted(glob.glob(str(SUP / "*.snirf")))))
-    N.to_csv(ROOT / "niche_features.csv", index=False)
-    f = pd.read_csv(ROOT / "features.csv")
-    df = f.merge(pd.read_csv(ROOT / "bands_supine.csv"), on="subject", how="left") \
-          .merge(pd.read_csv(ROOT / "timing_index.csv").drop(columns=[c for c in load_meta().columns if c != "subject"] + ["CRF"], errors="ignore"), on="subject", how="left") \
-          .merge(pd.read_csv(ROOT / "endo_followup_supine.csv")[["subject", "lr_sync"]], on="subject", how="left").merge(N, on="subject", how="left")
+    N.to_csv(ROOT / "results/niche_features.csv", index=False)
+    f = pd.read_csv(ROOT / "results/features.csv")
+    df = f.merge(pd.read_csv(ROOT / "results/bands_supine.csv"), on="subject", how="left") \
+          .merge(pd.read_csv(ROOT / "results/timing_index.csv").drop(columns=[c for c in load_meta().columns if c != "subject"] + ["CRF"], errors="ignore"), on="subject", how="left") \
+          .merge(pd.read_csv(ROOT / "results/endo_followup_supine.csv")[["subject", "lr_sync"]], on="subject", how="left").merge(N, on="subject", how="left")
     g = df[df.age.between(18, 24)].copy()
     targets = ["sex_male", "height", "weight", "bmi", "head_circ", "hair_darkness", "hair_curl", "hair_thickness",
                "fitzpatrick", "medication_any", "activity", "treadmill_kmh", "NEG_CONTROL_group"]
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     for c in N.columns[1:]:
         x = R[R.feature == c].sort_values("p").head(1)
         if len(x): print(f"  {c:<22} best: {x.target.iloc[0]:<14} rho {x.rho.iloc[0]:+.2f} p {x.p.iloc[0]:.3f} q {x.q.iloc[0]:.2f}")
-    R.to_csv(ROOT / "deep_screen_18_24.csv", index=False)
+    R.to_csv(ROOT / "results/deep_screen_18_24.csv", index=False)
     # covariance structure: PCA of scale-free physiology within the group
     phys = ["hr_bpm", "rmssd_ms", "sd1_sd2", "pulse_p1_phase", "pulse_relax_area", "resp_rate_bpm", "pow_mayer_rel", "pow_resp_rel",
             "l30_hbo_endothelial_rel", "l30_hbo_neurogenic_rel", "l30_hbo_myogenic_rel", "TI", "spec_slope_1f", "dfa_alpha", "sampen_slow", "pulse_amp_cv", "pulse_amp_resp_mod"]

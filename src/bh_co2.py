@@ -108,7 +108,7 @@ def main():
         r, pv = spearmanr(d[c], d["activity"])
         ra, pa = spearmanr(d[c], d["age"])
         print(f"{k}. {lab:<34} vs activity rho {r:+.2f} (p {pv:.3f})   [vs age rho {ra:+.2f} (p {pa:.3f})]  n={len(d)}")
-    holds[num].to_csv(ROOT / "bh_co2.csv", index=False)
+    holds[num].to_csv(ROOT / "results/bh_co2.csv", index=False)
 
     fig, ax = plt.subplots(1, 3, figsize=(13, 3.8), sharey=True)
     H = holds[holds.duration >= 25]
@@ -126,8 +126,8 @@ def main():
         a.legend(fontsize=7)
     ax[0].set_ylabel("ΔHbO [µM] (średnia ± 95% CI)")
     fig.tight_layout()
-    fig.savefig(ROOT / "bh_co2.png", dpi=120)
-    print(f"figure -> {ROOT / 'bh_co2.png'}")
+    fig.savefig(ROOT / "results/bh_co2.png", dpi=120)
+    print(f"figure -> {ROOT / 'results/bh_co2.png'}")
 
 
 if __name__ == "__main__":

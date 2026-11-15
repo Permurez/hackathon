@@ -120,7 +120,7 @@ def main():
     files = sorted(glob.glob(str(DOT / "data/SPB/*.snirf")) + glob.glob(str(DOT / "data/RS/*.snirf")))
     with Pool(6) as p:
         df = pd.DataFrame([r for rows in p.map(analyse, files) for r in rows])
-    df.to_csv(ROOT / "spiroximetry.csv", index=False)
+    df.to_csv(ROOT / "results/spiroximetry.csv", index=False)
     T = list(TIERS)
     for mode in DPF_MODES:
         d = df[df.dpf == mode]
@@ -166,7 +166,7 @@ def main():
         for sp in ("top", "right"):
             a.spines[sp].set_visible(False)
     fig.tight_layout()
-    fig.savefig(ROOT / "spiroximetry.png", dpi=130, facecolor=fig.get_facecolor())
+    fig.savefig(ROOT / "results/spiroximetry.png", dpi=130, facecolor=fig.get_facecolor())
     print(f"\n-> spiroximetry.csv, spiroximetry.png")
 
 

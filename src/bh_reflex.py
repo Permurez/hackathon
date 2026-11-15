@@ -151,7 +151,7 @@ def main():
         pd_ = wilcoxon(per.loc[both, c], per_sham.loc[both, c], nan_policy="omit").pvalue
         print(f"  {'   SHAM':<28} median {y.median():+6.1f} %  [IQR {y.quantile(.25):+.1f} .. {y.quantile(.75):+.1f}]"
               f"   lower in {100 * (y < 0).mean():3.0f} % of people   hold vs sham p = {pd_:.2g}   n = {len(y)}")
-    holds[num].to_csv(ROOT / "bh_reflex.csv", index=False)
+    holds[num].to_csv(ROOT / "results/bh_reflex.csv", index=False)
 
     fig, ax = plt.subplots(1, 2, figsize=(11, 4))
     long_holds = holds[holds.duration >= 25]
@@ -171,8 +171,8 @@ def main():
         a.set_xlabel("czas od początku bezdechu [s]"); a.set_ylabel("zmiana vs oddychanie przed [%]")
         a.set_title(f"{lab} (bezdechy ≥ 25 s, n = {len(P)} osób, średnia ± 95% CI)")
     fig.tight_layout()
-    fig.savefig(ROOT / "bh_reflex.png", dpi=120)
-    print(f"\nfigure -> {ROOT / 'bh_reflex.png'}  (curves end where the shortest included holds end)")
+    fig.savefig(ROOT / "results/bh_reflex.png", dpi=120)
+    print(f"\nfigure -> {ROOT / 'results/bh_reflex.png'}  (curves end where the shortest included holds end)")
 
 
 if __name__ == "__main__":

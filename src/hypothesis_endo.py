@@ -8,8 +8,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import LeaveOneOut, cross_val_predict
 from sklearn.metrics import roc_auc_score, roc_curve
-f = pd.read_csv("features.csv"); b = pd.read_csv("bands_supine.csv")
-mv = pd.read_csv("multiverse_endothelial.csv")
+f = pd.read_csv("results/features.csv"); b = pd.read_csv("results/bands_supine.csv")
+mv = pd.read_csv("results/multiverse_endothelial.csv")
 df = f.merge(b, on="subject")
 E = "l30_hbo_endothelial_rel"; rng = np.random.default_rng(0)
 

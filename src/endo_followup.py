@@ -68,4 +68,4 @@ if __name__ == "__main__":
         R = x[["lr_sync", "activity", "age", "sex_male", "bmi"]].rank(); X = np.c_[np.ones(len(R)), R[["age", "sex_male", "bmi"]].values]
         res = lambda v: v - X @ np.linalg.lstsq(X, v, rcond=None)[0]; rp, pp = pearsonr(res(R.lr_sync.values), res(R.activity.values))
         print(f"(3) L-R sync {lab} (n {len(x)}): median {x.lr_sync.median():.2f}; vs activity rho {r:+.2f} p {pv:.3f}; partial|age,sex,BMI {rp:+.2f} p {pp:.3f}; NEG control rho {rn:+.2f}")
-    d.to_csv(ROOT / "endo_followup_supine.csv", index=False); D.to_csv(ROOT / "endo_followup_dot.csv", index=False)
+    d.to_csv(ROOT / "results/endo_followup_supine.csv", index=False); D.to_csv(ROOT / "results/endo_followup_dot.csv", index=False)

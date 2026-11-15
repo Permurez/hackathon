@@ -285,7 +285,7 @@ def main():
     feat = base.merge(bh, on="subject", how="outer")
     meta = load_meta()
     df = feat.merge(meta, on="subject", how="left")
-    df.to_csv(ROOT / "features.csv", index=False)
+    df.to_csv(ROOT / "results/features.csv", index=False)
     F = [c for c in feat.columns if c != "subject"]
     T = [c for c in meta.columns if c != "subject"]
 
@@ -305,7 +305,7 @@ def main():
     res = pd.DataFrame(rows).dropna(subset=["p"])
     res["q_fdr"] = false_discovery_control(res["p"].values)
     res = res.sort_values("p")
-    res.to_csv(ROOT / "correlations.csv", index=False)
+    res.to_csv(ROOT / "results/correlations.csv", index=False)
 
     n = len(res)
     print(f"{len(df)} people, {len(F)} fNIRS parameters x {len(T) + 1} subject variables = {n} tests")
@@ -331,7 +331,7 @@ def main():
     fig.colorbar(im, label="±log10(q FDR)  (znak = kierunek korelacji)")
     ax.set_title("Parametry fNIRS vs dane osób (Spearman, FDR); liczby = rho dla q < 0,10")
     fig.tight_layout()
-    fig.savefig(ROOT / "correlations.png", dpi=110)
+    fig.savefig(ROOT / "results/correlations.png", dpi=110)
     print(f"\n-> features.csv, correlations.csv, correlations.png")
 
 

@@ -2,7 +2,7 @@
 import numpy as np, pandas as pd
 from scipy import stats, integrate
 import statsmodels.api as sm
-f = pd.read_csv("features.csv"); b = pd.read_csv("bands_supine.csv")
+f = pd.read_csv("results/features.csv"); b = pd.read_csv("results/bands_supine.csv")
 d = f.merge(b, on="subject"); d = d[d.age < 60].dropna(subset=["l30_hbo_endothelial_rel", "activity", "age", "sex_male", "bmi"])
 x = d.l30_hbo_endothelial_rel.values; a = d.activity.values; n = len(x); top = a == a.max()
 rng = np.random.default_rng(0); out = {}

@@ -47,4 +47,4 @@ if __name__ == "__main__":
     r_half = stats.spearmanr(g.TI_half1, g.TI_half2)[0]; sb = 2 * r_half / (1 + r_half)
     print(f"reliability (no medication, n={len(g)}): first vs second half rho {r_half:+.2f} -> whole-recording reliability (Spearman-Brown) {sb:.2f}")
     print("medicated people (excluded):"); print(d[d.medication_any == 1][["subject", "age", "antihypertensive", "TI_full"]].round(2).to_string(index=False))
-    R.to_csv(Path(__file__).resolve().parents[1] / "ti_followup.csv", index=False)
+    R.to_csv(Path(__file__).resolve().parents[1] / "results/ti_followup.csv", index=False)

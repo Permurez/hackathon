@@ -53,7 +53,7 @@ if __name__ == "__main__":
         d = pd.DataFrame([{"subject": e["subject"], "v": e.get(k, np.nan)} for e in E]).merge(meta, on="subject").dropna(subset=["v"])
         if len(d) < 40: continue
         r, pv = spearmanr(d.v, d.activity); res.append(dict(ch=k[0], chrom=k[1], win=k[2], edge=k[3], rho=r, p=pv))
-    R = pd.DataFrame(res); R.to_csv("multiverse_endothelial.csv", index=False)
+    R = pd.DataFrame(res); R.to_csv("results/multiverse_endothelial.csv", index=False)
     summarize("ALL variants", R.rho, R.p, +1)
     for col in ("ch", "chrom", "win", "edge"):
         g = R.groupby(col).apply(lambda x: pd.Series({"n": len(x), "rho_median": x.rho.median(), "pct_p05": 100 * np.mean((x.rho > 0) & (x.p < .05))}), include_groups=False)

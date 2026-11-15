@@ -92,9 +92,9 @@ def analyse(path) -> dict:
 
 def cohort() -> pd.DataFrame:
     """Both markers for every person of the supine dataset (precomputed by bands.py and ti_followup.py)."""
-    b = pd.read_csv(ROOT / "bands_supine.csv")[["subject", "l30_hbo_endothelial_rel"]] \
+    b = pd.read_csv(ROOT / "results/bands_supine.csv")[["subject", "l30_hbo_endothelial_rel"]] \
         .rename(columns={"l30_hbo_endothelial_rel": "endo"})
-    t = pd.read_csv(ROOT / "ti_followup.csv")[["subject", "TI_full"]].rename(columns={"TI_full": "TI"})
+    t = pd.read_csv(ROOT / "results/ti_followup.csv")[["subject", "TI_full"]].rename(columns={"TI_full": "TI"})
     m = load_meta()[["subject", "age", "sex_male", "activity", "medication_any"]]
     d = b.merge(t, on="subject", how="outer").merge(m, on="subject", how="left")
     d["healthy_ref"] = (d.age < 60) & (d.medication_any == 0)
@@ -231,10 +231,10 @@ if __name__ == "__main__" and "--figs" in sys.argv:
     print(f"endothelial band vs activity, no medication: rho {r:+.2f} (p {p:.4f})")
     fig = fig_two_axes(coh)
     fig.tight_layout()
-    fig.savefig(ROOT / "fig_two_axes.png", dpi=150)
+    fig.savefig(ROOT / "results/fig_two_axes.png", dpi=150)
     path = next(BASE.glob("17_*.snirf"))
     res = analyse(path)
     sc = score(res, coh)
-    fig_card(res, coh, sc).savefig(ROOT / "demo_card_17.png", dpi=130)
+    fig_card(res, coh, sc).savefig(ROOT / "results/demo_card_17.png", dpi=130)
     print("\n".join(interpret(res, sc)))
     print("-> fig_two_axes.png, demo_card_17.png")
