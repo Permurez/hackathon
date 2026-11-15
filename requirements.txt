@@ -9,3 +9,4 @@ snirf>=0.8
 jupyterlab>=4.0
 streamlit>=1.40  # app.py dashboard
 h5py>=3.10  # src/haemo.py reads SNIRF directly
+statsmodels>=0.14  # ordinal regression in src/hypothesis_endo.py

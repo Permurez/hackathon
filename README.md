@@ -1,30 +1,56 @@
-# Heroes of the Brain 2026 – Cortivision *Breath, Brain & Body*
+# Puls pod czepkiem: ślad treningu w spoczynkowym fNIRS
 
-Nowy start. Poprzednia wersja (przesiew krążenia: `kod_fnirs/`, `screening.py`, `app.py`) jest
-w historii gita, w commicie `113ec9d`.
+Heroes of the Brain 2026 · wyzwanie Cortivision *Breath, Brain & Body*.
 
-```bash
-./download_data.sh          # nagrania ~5 GB -> dane/infopack_and_data (nie są w repo)
-```
+**Wynik:** w 10-minutowym spoczynkowym nagraniu fNIRS z czoła wolny rytm naczyń (0,0095–0,021 Hz,
+pasmo przypisywane śródbłonkowi) jest silniejszy u osób bardziej aktywnych fizycznie:
+ρ = +0,46 (p = 0,0004, ages 18–42, n = 55), 1,49× w grupie trenującej > 3 h/tydz.
+(literatura u sportowców, laser doppler w skórze: 1,5×; Kvernmo i in. 2003). Wynik niezależny od wieku,
+płci i BMI, specyficzny dla tego pasma i kanałów na czole, potwierdzony ślepym przeszukaniem 5000 hipotez.
+Wynik pomocniczy: indeks fali odbitej (TI, replikacja Afkhami i in. 2021) rośnie z wiekiem (ρ = +0,38).
+To wskaźnik grupowy, nie diagnoza pojedynczej osoby.
 
-## Surowa intensywność → OD → HbO/HbR (`src/haemo.py`)
-
-Dane w obu zbiorach to surowa intensywność światła (CW, 760 i 850 nm). Konwersja napisana od zera
-(numpy + h5py, bez MNE), krok po kroku:
-
-1. odczyt SNIRF: intensywność, `measurementList` (źródło, detektor, długość fali), pozycje 3D optod → odległość
-   źródło–detektor; pary < 15 mm to kanały krótkie (skóra);
-2. próbki z `metaDataTags/missing_sample` → interpolacja liniowa; próbki z intensywnością ≤ 0 są przycinane
-   i wypisywane jako ostrzeżenie;
-3. gęstość optyczna ΔOD = −log₁₀(I / średnia I);
-4. zmodyfikowane prawo Beera-Lamberta dla każdej pary, obie długości fali naraz (układ 2×2):
-   ΔOD(λ) = [ε_HbO(λ)·ΔHbO + ε_HbR(λ)·ΔHbR] · d · DPF(λ), wynik w µM.
-   ε: tabela Prahla (omlc.org, dane Gratzera i Kolliasa). DPF zależny od wieku i długości fali
-   (Scholkmann & Wolf 2013) albo stały (`--dpf`).
+## Szybki start
 
 ```bash
-python src/haemo.py PLIK.snirf --age 25 --out wynik.npz
-python src/test_haemo.py      # syntetyczny test w obie strony + zgodność z MNE (r = 1,000, skala ±0,02%)
+./download_data.sh                                   # dane hackathonu (~5 GB) -> dane/
+source ~/.venvs/fnirs/bin/activate                   # Python 3.14
+pip install -r requirements.txt
+python src/demo.py dane/infopack_and_data/fnirs_high_freq_supine/data/baseline/7_SR_BS_2025-07-03-14-13-26.snirf
 ```
+`demo.py`: jedno nagranie → HbO → widmo → moc pasma, percentyl w grupie, prawdopodobieństwo modelu.
 
-Sprawdzone na wszystkich 288 plikach (118 na leżąco, 170 DOT): 0 błędów.
+## Odtworzenie wyników
+
+| Krok | Polecenie | Wynik |
+|---|---|---|
+| konwersja światło → HbO/HbR (test vs MNE) | `python src/test_haemo.py` | ALL OK |
+| parametry wszystkich osób | `python src/features.py` | `features.csv`, `correlations.csv` |
+| pasma wazomocji | `python src/bands.py` | `bands_supine.csv` |
+| indeks fali odbitej | `python src/timing_index.py` | `timing_index.csv` |
+| 17 testów statystycznych | `python src/full_stats.py` | wydruk |
+| test hipotezy (trend, regresja porządkowa, AUC, falsyfikacja) | `python src/hypothesis_endo.py` | wydruk |
+| odporność: multiverse, szum, 5000 losowych hipotez | `python src/multiverse.py`, `src/sensitivity.py`, `src/random_hypotheses.py` | csv + wydruk |
+| wykresy na slajdy | `python src/figures.py` | `fig_*.png` |
+
+## Pliki
+
+| Plik | Co robi |
+|---|---|
+| `src/haemo.py` | SNIRF → gęstość optyczna → HbO/HbR (Beer–Lambert, DPF Scholkmann & Wolf 2013), bez MNE |
+| `src/features.py` | ~90 parametrów na osobę + przegląd korelacji z FDR |
+| `src/bands.py` | moc pasm Stefanovskiej (śródbłonkowe, neurogenne, miogenne, oddechowe, sercowe) |
+| `src/timing_index.py` | replikacja TI_NIRS (Afkhami i in. 2021) |
+| `src/full_stats.py`, `src/hypothesis_endo.py` | testy statystyczne głównego wyniku |
+| `src/multiverse.py`, `src/sensitivity.py`, `src/random_hypotheses.py`, `src/deep_screen.py` | odporność wyniku |
+| `src/subgroup.py`, `src/plot_correlations.py` | mapy korelacji (grupa 18–42) |
+| `src/endo_followup.py` | stabilność pasma w ciągu dnia (dane DOT) |
+| `src/bh_reflex.py`, `src/bh_co2.py`, `src/spiroximetry.py` | oddech i bezdech: reakcja HbO na CO₂, tętno, saturacja żylna |
+| `src/demo.py` | demo na jednym nagraniu |
+
+Poprzednia wersja projektu (przesiew krążenia, Streamlit) jest w historii gita, commit `113ec9d`.
+
+## Ograniczenia
+
+Aktywność z ankiety (Jurca 2005), badanie przekrojowe, 10 min nagrania, brak pomiaru odniesienia
+(FMD, doppler, test wysiłkowy), grupa głównie 18–42 lata. Dane hackathonu: użycie tylko do 15.11.2026.
