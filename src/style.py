@@ -14,21 +14,26 @@ import vascular as V
 BG = Path(__file__).resolve().parent / "static" / "bg.jpg"
 
 CSS = """
-.stApp { background: linear-gradient(rgba(7, 12, 32, 0.86), rgba(7, 12, 32, 0.93)), __BG__; background-size: cover;
-         background-position: center; background-attachment: fixed; }
+.stApp { background: linear-gradient(90deg, rgba(7, 12, 32, 0.55) 0%, rgba(7, 12, 32, 0.30) 60%, rgba(7, 12, 32, 0.15) 100%),
+                     __BG__; background-size: cover; background-position: center; background-attachment: fixed; }
 [data-testid="stHeader"] { background: transparent; }
-[data-testid="stSidebar"] { background: rgba(9, 16, 40, 0.94); border-right: 1px solid rgba(201, 211, 227, 0.12); }
+[data-testid="stSidebar"] { background: rgba(9, 16, 40, 0.78); backdrop-filter: blur(6px);
+                            border-right: 1px solid rgba(201, 211, 227, 0.12); }
+.stMarkdown p, .stMarkdown li, [data-testid="stCaptionContainer"], h1, h2, h3 { text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75); }
+[data-testid="stImage"] img { background: rgba(9, 16, 40, 0.80); padding: 10px; border-radius: 14px;
+                              backdrop-filter: blur(4px); }
+[data-testid="stTabs"], [data-testid="stDataFrame"] { background: rgba(9, 16, 40, 0.55); border-radius: 14px; padding: 6px 10px; }
 [data-testid="stAppDeployButton"], #MainMenu, footer { display: none !important; }
 h1 { font-weight: 700 !important; letter-spacing: -0.02em; }
-[data-testid="stMetric"] { background: rgba(16, 27, 58, 0.72); border: 1px solid rgba(201, 211, 227, 0.16);
-                           border-radius: 14px; padding: 14px 18px; }
+[data-testid="stMetric"] { background: rgba(12, 21, 48, 0.82); border: 1px solid rgba(201, 211, 227, 0.16);
+                           border-radius: 14px; padding: 14px 18px; backdrop-filter: blur(4px); }
 [data-testid="stMetricValue"] { font-size: 1.75rem; }
 [data-testid="stImage"] img { border-radius: 12px; }
 [data-testid="stExpander"] details { background: rgba(16, 27, 58, 0.6); border-radius: 12px; }
 .stTabs [data-baseweb="tab-list"] { gap: 6px; }
 .stTabs [data-baseweb="tab"] { background: rgba(16, 27, 58, 0.6); border-radius: 10px 10px 0 0; padding: 6px 16px; }
-.hero { padding: 22px 26px; border-radius: 18px; margin: 4px 0 18px 0;
-        background: linear-gradient(135deg, rgba(255, 107, 134, 0.16), rgba(110, 168, 255, 0.12));
+.hero { padding: 22px 26px; border-radius: 18px; margin: 4px 0 18px 0; backdrop-filter: blur(6px);
+        background: linear-gradient(135deg, rgba(60, 20, 50, 0.78), rgba(12, 24, 60, 0.78));
         border: 1px solid rgba(201, 211, 227, 0.16); }
 .hero .lead { margin: 0; color: #E8ECF3; font-size: 1.12rem; line-height: 1.5; }
 .steps { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
