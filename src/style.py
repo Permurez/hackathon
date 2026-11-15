@@ -48,7 +48,7 @@ h1 { font-weight: 700 !important; letter-spacing: -0.02em; }
 .legend { color: #B6C2D6; font-size: 0.9rem; margin: -6px 0 10px 0; }
 """
 
-BADGES = {"pomiar": "pomiar", "grupa": "na tle grupy", "wskazowka": "wskazówka"}
+BADGES = {"pomiar": "measured", "grupa": "vs group", "wskazowka": "hint"}
 
 
 @lru_cache(maxsize=1)
@@ -82,6 +82,6 @@ def badge(kind: str) -> str:
 
 
 def legend() -> None:
-    st.markdown(f'<p class="legend">Jak czytać: {badge("pomiar")} zmierzone wprost · {badge("grupa")} porównanie '
-                f'ze zdrowymi osobami 18–42 l. · {badge("wskazowka")} prawdopodobieństwo, nie pewność</p>',
+    st.markdown(f'<p class="legend">How to read: {badge("pomiar")} measured directly · {badge("grupa")} compared '
+                f'with healthy people aged 18–42 · {badge("wskazowka")} a likelihood, not a certainty</p>',
                 unsafe_allow_html=True)

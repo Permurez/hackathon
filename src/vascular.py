@@ -34,10 +34,10 @@ from ti_followup import ti_segment  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "dane/infopack_and_data/fnirs_high_freq_supine/data/baseline"
 LO, HI = 0.0095, 0.021
-ACT = {0.0: "brak aktywności", 0.32: "lekki ruch regularnie", 1.06: "aeroby < 1 h/tydz",
-       1.76: "aeroby 1–3 h/tydz", 3.03: "aeroby > 3 h/tydz"}
+ACT = {0.0: "no activity", 0.32: "light activity regularly", 1.06: "aerobic < 1 h/week",
+       1.76: "aerobic 1–3 h/week", 3.03: "aerobic > 3 h/week"}
 INK, MUTED, BLUE, ORANGE, GREY = "#14213d", "#5b6472", "#2a78d6", "#d97706", "#b4bcc6"
-DISCLAIMER = "Wskaźnik grupowy na tle zdrowej grupy 18–42 l., nie diagnoza medyczna."
+DISCLAIMER = "A group-level hint compared with healthy people aged 18–42, not a medical diagnosis."
 plt.rcParams.update({"font.size": 11, "axes.spines.top": False, "axes.spines.right": False})
 
 
@@ -110,13 +110,13 @@ def score(res: dict, coh: pd.DataFrame) -> dict:
 
 def interpret(res: dict, sc: dict) -> list[str]:
     e, s = sc["pct_endo"], sc["pct_ti"]
-    out = [f"Regulacja naczyń (wolny rytm 0,0095–0,021 Hz): silniejsza niż u {e:.0f}% zdrowej grupy."]
+    out = [f"Vessel regulation (slow wave 0.0095–0.021 Hz): stronger than in {e:.0f}% of the healthy group."]
     if np.isfinite(s):
-        out.append(f"Fala odbita (TI): wraca {'szybciej' if s >= 50 else 'wolniej'} niż u "
-                   f"{s if s >= 50 else 100 - s:.0f}% grupy. W grupie wyższy TI idzie w parze ze starszym wiekiem "
-                   "(sztywniejsze tętnice); dla jednej osoby to wskazówka, nie pomiar sztywności.")
-    out.append(f"Model (regresja logistyczna, AUC 0,67): {100 * sc['prob_active']:.0f}% szans, "
-               "że osoba ćwiczy aerobowo ponad 3 h tygodniowo.")
+        out.append(f"Pulse echo (TI): comes back {'faster' if s >= 50 else 'slower'} than in "
+                   f"{s if s >= 50 else 100 - s:.0f}% of the group. Higher TI goes with older age "
+                   "(stiffer arteries); for one person it is a hint, not a stiffness measurement.")
+    out.append(f"Model (logistic regression, AUC 0.67): {100 * sc['prob_active']:.0f}% chance "
+               "that the person does aerobic exercise over 3 h a week.")
     return out
 
 
@@ -131,9 +131,9 @@ def _ax(ax, size=(6.4, 3.8)):
 def fig_signal(res, ax=None):
     fig, ax = _ax(ax)
     ax.plot(res["t_min"], res["hbo"], lw=0.6, color=BLUE)
-    ax.set_xlabel("czas [min]")
+    ax.set_xlabel("time [min]")
     ax.set_ylabel("HbO [µM]")
-    ax.set_title("Sygnał z czoła, spoczynek")
+    ax.set_title("Forehead signal at rest")
     return fig
 
 
@@ -142,14 +142,14 @@ def fig_spectrum(res, ax=None):
     f, p = res["f"], res["p"]
     band = (f >= LO) & (f <= HI)
     ax.semilogx(f[1:], p[1:], color=INK)
-    ax.fill_between(f[band], p[band], color=ORANGE, alpha=0.65, label="wolny rytm naczyń (śródbłonek)")
-    for x0, lab, y0 in ((0.1, "fale Mayera", 0.97), (0.25, "oddech", 0.88), (1.1, "serce", 0.97)):
+    ax.fill_between(f[band], p[band], color=ORANGE, alpha=0.65, label="slow vessel wave (endothelium)")
+    for x0, lab, y0 in ((0.1, "Mayer waves", 0.97), (0.25, "breathing", 0.88), (1.1, "heart", 0.97)):
         ax.axvline(x0, color=GREY, lw=0.8, ls=":")
         ax.text(x0, y0, lab, fontsize=8, color=MUTED, ha="center", va="top", transform=ax.get_xaxis_transform())
     ax.set_xlim(0.005, 2)
-    ax.set_xlabel("częstotliwość [Hz]")
-    ax.set_ylabel("moc")
-    ax.set_title(f"Widmo: rytm naczyń = {100 * res['endo']:.0f}% sygnału")
+    ax.set_xlabel("frequency [Hz]")
+    ax.set_ylabel("power")
+    ax.set_title(f"Spectrum: vessel wave = {100 * res['endo']:.0f}% of signal")
     ax.legend(fontsize=8, loc="center right")
     return fig
 
@@ -159,15 +159,15 @@ def fig_pulse(res, ax=None):
     ax.plot(res["beat_ms"], res["beat"], color=INK, lw=2)
     ts, tf = res["t_sys"], res["t_refl"]
     if np.isfinite(ts) and np.isfinite(tf):
-        for t, lab, c in ((ts, "fala z serca", BLUE), (tf, "fala odbita", ORANGE)):
+        for t, lab, c in ((ts, "wave from the heart", BLUE), (tf, "echo wave", ORANGE)):
             i = int(round(t * 1000 / (res["beat_ms"][1] - res["beat_ms"][0])))
             ax.plot(1000 * t, res["beat"][min(i, len(res["beat"]) - 1)], "o", ms=10, color=c, label=lab)
         ax.annotate("", xy=(1000 * tf, 0.06), xytext=(1000 * ts, 0.06), arrowprops=dict(arrowstyle="<->", color=MUTED))
-        ax.text(500 * (ts + tf), 0.1, f"{1000 * (tf - ts):.0f} ms na tym uśrednionym pulsie", ha="center", color=MUTED)
-    ax.set_xlabel("czas od początku uderzenia [ms]")
+        ax.text(500 * (ts + tf), 0.1, f"{1000 * (tf - ts):.0f} ms on this averaged pulse", ha="center", color=MUTED)
+    ax.set_xlabel("time from beat start [ms]")
     ax.set_yticks([])
-    ti = f"TI = {res['TI']:.2f} 1/s (średnia z kanałów)" if np.isfinite(res["TI"]) else "TI: brak"
-    ax.set_title(f"Uśredniona fala tętna ({res['n_beats']} uderzeń) · {ti}")
+    ti = f"TI = {res['TI']:.2f} 1/s (channel mean)" if np.isfinite(res["TI"]) else "TI: n/a"
+    ax.set_title(f"Averaged pulse wave ({res['n_beats']} beats) · {ti}")
     ax.legend(fontsize=8, loc="upper right")
     return fig
 
@@ -178,23 +178,23 @@ def fig_two_axes(coh, res=None, ax=None):
     if res is not None:
         ref = ref[ref.subject != res["subject"]]
     top = ref.activity == ref.activity.max()
-    ax.scatter(ref.TI[~top], 100 * ref.endo[~top], s=46, color=GREY, edgecolor="white", label="aeroby ≤ 3 h/tydz")
-    ax.scatter(ref.TI[top], 100 * ref.endo[top], s=46, color=ORANGE, edgecolor="white", label="aeroby > 3 h/tydz")
+    ax.scatter(ref.TI[~top], 100 * ref.endo[~top], s=46, color=GREY, edgecolor="white", label="aerobic ≤ 3 h/week")
+    ax.scatter(ref.TI[top], 100 * ref.endo[top], s=46, color=ORANGE, edgecolor="white", label="aerobic > 3 h/week")
     mx, my = ref.TI.median(), 100 * ref.endo.median()
     ax.axvline(mx, color=MUTED, lw=0.8, ls="--")
     ax.axhline(my, color=MUTED, lw=0.8, ls="--")
     if res is not None and np.isfinite(res["TI"]):
-        ax.scatter([res["TI"]], [100 * res["endo"]], s=380, marker="*", color=INK, zorder=5, label="ta osoba")
+        ax.scatter([res["TI"]], [100 * res["endo"]], s=380, marker="*", color=INK, zorder=5, label="this person")
     ax.margins(x=0.08, y=0.12)
     kw = dict(fontsize=8.5, color=MUTED, transform=ax.transAxes)
-    ax.text(0.02, 0.98, "elastyczniej · silna regulacja", va="top", **kw)
-    ax.text(0.98, 0.98, "sztywniej · silna regulacja", va="top", ha="right", **kw)
-    ax.text(0.02, 0.02, "elastyczniej · słaba regulacja", va="bottom", **kw)
-    ax.text(0.98, 0.02, "sztywniej · słaba regulacja", va="bottom", ha="right", **kw)
+    ax.text(0.02, 0.98, "more elastic · strong regulation", va="top", **kw)
+    ax.text(0.98, 0.98, "stiffer · strong regulation", va="top", ha="right", **kw)
+    ax.text(0.02, 0.02, "more elastic · weak regulation", va="bottom", **kw)
+    ax.text(0.98, 0.02, "stiffer · weak regulation", va="bottom", ha="right", **kw)
     r, _ = stats.spearmanr(ref.TI, ref.endo)
-    ax.set_xlabel("indeks fali odbitej TI [1/s]   →  sztywniejsze tętnice")
-    ax.set_ylabel("wolny rytm naczyń [% sygnału]   →  silniejsza regulacja")
-    ax.set_title(f"Dwie niezależne osie zdrowia naczyń\nzdrowi 18–42 l. bez leków, n = {len(ref)}, korelacja osi ρ = {r:+.2f}",
+    ax.set_xlabel("pulse echo index TI [1/s]   →  stiffer arteries")
+    ax.set_ylabel("slow vessel wave [% of signal]   →  stronger regulation")
+    ax.set_title(f"Two independent axes of vessel health\nhealthy people 18–42 without medication, n = {len(ref)}, axis correlation ρ = {r:+.2f}",
                  fontsize=11)
     ax.legend(fontsize=8.5, loc="center right")
     return fig

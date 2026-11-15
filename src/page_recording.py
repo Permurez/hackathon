@@ -40,7 +40,7 @@ def run_module(path: str) -> dict:
 
 def pl(v, f=".2f") -> str:
     """Number with a Polish decimal comma."""
-    return format(v, f).replace(".", ",")
+    return format(v, f)
 
 
 def pct_range(pct: float, icc: float) -> tuple[float, float]:
@@ -68,70 +68,70 @@ def label(p: Path) -> str:
     s = V.subject_of(p)
     r = coh[coh.subject == s]
     if len(r) and np.isfinite(r.age.iloc[0]):
-        return f"Osoba {s} · {int(r.age.iloc[0])} l. · ankieta: {V.ACT.get(r.activity.iloc[0], '?')}"
+        return f"Person {s} · {int(r.age.iloc[0])} y · questionnaire: {V.ACT.get(r.activity.iloc[0], '?')}"
     return p.name
 
 
 # ---------------------------------------------------------------- sidebar
-st.sidebar.title("Nagranie")
-mode = st.sidebar.radio("Źródło", ["Z zestawu danych", "Wgraj plik .snirf"])
-if mode == "Z zestawu danych":
+st.sidebar.title("Recording")
+mode = st.sidebar.radio("Source", ["From the dataset", "Upload a .snirf file"])
+if mode == "From the dataset":
     if not files:
-        st.error("Brak danych. Uruchom ./download_data.sh albo wgraj plik .snirf.")
+        st.error("No data. Run ./download_data.sh or upload a .snirf file.")
         st.stop()
     start = next((i for i, p in enumerate(files) if V.subject_of(p) == 17), 0)
-    path = str(st.sidebar.selectbox("Osoba", files, index=start, format_func=label))
+    path = str(st.sidebar.selectbox("Person", files, index=start, format_func=label))
 else:
-    up = st.sidebar.file_uploader("Plik .snirf: 10 min spoczynku, Cortivision C23", type=["snirf"])
+    up = st.sidebar.file_uploader("A .snirf file: 10 min of rest, Cortivision C23", type=["snirf"])
     if up is None:
-        st.info("Wgraj nagranie .snirf w panelu po lewej.")
+        st.info("Upload a .snirf recording in the left panel.")
         st.stop()
     tmp = Path(tempfile.gettempdir()) / up.name
     tmp.write_bytes(up.getvalue())
     path = str(tmp)
-st.sidebar.caption("Odniesienie: zdrowi 18–42 l. bez leków (n = 52), zbiór Cortivision na leżąco. "
-                   "Osoba analizowana jest wyłączona z grupy odniesienia.")
+st.sidebar.caption("Reference: healthy people aged 18–42 without medication (n = 52), Cortivision supine dataset. "
+                   "The person analysed is left out of the reference group.")
 
 # ---------------------------------------------------------------- header + analysis
-st.title("Puls pod czepkiem")
-style.hero("10 minut spokojnego leżenia w czepku fNIRS mówi coś o naczyniach krwionośnych: jak aktywnie się "
-           "regulują (silniej u osób trenujących) i jak szybko wraca fala tętna (szybciej u starszych). "
-           "Bez dodatkowego sprzętu. To wskazówki na tle grupy, nie diagnoza.",
-           ["Wybierz osobę z zestawu albo wgraj własny plik .snirf", "Aplikacja liczy wynik w ułamku sekundy",
-            "Czytaj kafelki: przy każdej liczbie widać, na ile można jej ufać"])
+st.title("Pulse Under the Cap")
+style.hero("10 minutes of lying still in an fNIRS cap tells us about your blood vessels: how actively they "
+           "regulate (more in people who train) and how fast the pulse wave comes back (faster in older people). "
+           "No extra equipment. These are hints compared with a group, not a diagnosis.",
+           ["Pick a person from the dataset or upload your own .snirf file", "The app computes the result in a fraction of a second",
+            "Read the tiles: each number shows how far you can trust it"])
 style.legend()
 
-with st.status("Analiza nagrania…", expanded=False) as status:
-    status.write("1. Surowe światło → gęstość optyczna → hemoglobina HbO (własna konwersja, zgodna z MNE)")
+with st.status("Analysing the recording…", expanded=False) as status:
+    status.write("1. Raw light → optical density → oxygenated haemoglobin (HbO)")
     mod = run_module(path)
     try:
         res = run(path)
     except Exception as e:  # noqa: BLE001 - other montage: show what the module can say
-        status.update(label=f"Inny montaż niż grupa odniesienia: {e}", state="error")
-        st.subheader("Wynik modułu (bez porównania z grupą)")
+        status.update(label=f"Different sensor layout than the reference group: {e}", state="error")
+        st.subheader("Module output (no comparison with the group)")
         st.json(mod)
         st.stop()
-    status.write("2. Widmo sygnału z czoła → moc wolnego rytmu naczyń 0,0095–0,021 Hz")
-    status.write(f"3. {res['n_beats']} uderzeń serca uśrednionych → fala z serca i fala odbita → indeks TI")
-    status.write("4. Porównanie ze zdrową grupą i model aktywności")
-    status.update(label=f"Gotowe: {res['file']} ({res['duration_min']:.1f} min)", state="complete")
+    status.write("2. Spectrum of the forehead signal → strength of the slow vessel wave (0.0095–0.021 Hz)")
+    status.write(f"3. {res['n_beats']} heartbeats averaged → wave from the heart and its echo → TI index")
+    status.write("4. Comparison with a healthy group")
+    status.update(label=f"Done: {res['file']} ({res['duration_min']:.1f} min)", state="complete")
 sc = V.score(res, coh)
 
 c1, c2, c4 = st.columns(3)
-c1.metric("Regulacja naczyń", f"wyżej niż {sc['pct_endo']:.0f}% osób",
-          help="Siła wolnego rytmu naczyń (pasmo przypisywane śródbłonkowi) na tle zdrowej grupy 18–42 l.")
-c2.metric("Fala odbita (TI)", f"wyżej niż {sc['pct_ti']:.0f}% osób" if np.isfinite(sc["pct_ti"]) else "–",
-          help="Wyżej = fala tętna wraca szybciej; w grupie rośnie z wiekiem. Dla jednej osoby to wskazówka.")
-c4.metric("Tętno spoczynkowe", f"{res['hr']:.0f} /min")
+c1.metric("Vessel regulation", f"above {sc['pct_endo']:.0f}% of people",
+          help="Strength of the slow vessel wave (linked to the vessel lining) vs healthy people aged 18–42.")
+c2.metric("Pulse echo (TI)", f"above {sc['pct_ti']:.0f}% of people" if np.isfinite(sc["pct_ti"]) else "–",
+          help="Higher = the pulse wave comes back faster; it rises with age. For one person it is a hint.")
+c4.metric("Resting heart rate", f"{res['hr']:.0f} /min")
 for col, kind in ((c1, "grupa"), (c2, "grupa"), (c4, "pomiar")):
     col.caption(style.badge(kind), unsafe_allow_html=True)
 
 row = coh[coh.subject == res["subject"]]
 if len(row) and np.isfinite(row.activity.iloc[0]):
-    st.caption(f"Dla porównania, ankieta tej osoby: {V.ACT.get(row.activity.iloc[0], '?')}, "
-               f"wiek {int(row.age.iloc[0])} l. (model tego nie widzi).")
+    st.caption(f"For comparison, this person's questionnaire: {V.ACT.get(row.activity.iloc[0], '?')}, "
+               f"age {int(row.age.iloc[0])} (the model does not see this).")
 
-tab1, tab2 = st.tabs(["Sygnał i fala tętna", "Dwie osie na tle grupy"])
+tab1, tab2 = st.tabs(["Signal and pulse wave", "Two axes vs the group"])
 with tab1:
     a, b = st.columns(2)
     with a:
@@ -142,39 +142,39 @@ with tab1:
     with a:
         show(V.fig_pulse(res))
     with b:
-        st.subheader("Wnioski z tego nagrania")
+        st.subheader("What this recording shows")
         for line in V.interpret(res, sc):
             if not line.startswith("Model"):
                 st.markdown(f"- {line}")
-        st.markdown("- Przybliżoną liczbę godzin treningu w tygodniu pokazuje widok *Przewidywanie aktywności*.")
+        st.markdown("- Estimated weekly training hours are on the *Activity estimate* page.")
         lo, hi = pct_range(sc["pct_endo"], ICC_BAND)
-        st.markdown(f"- **Pewność:** przy powtórnym nagraniu rytm naczyń wypadłby zwykle między **{lo:.0f}. a "
-                    f"{hi:.0f}. percentylem** (jedno nagranie, powtarzalność {pl(ICC_BAND)}).")
+        st.markdown(f"- **Certainty:** in a repeat recording the vessel wave would usually land between the **{lo:.0f}th and "
+                    f"{hi:.0f}th percentile** (one recording, repeatability {pl(ICC_BAND)}).")
         if np.isfinite(sc["pct_ti"]):
             lo, hi = pct_range(sc["pct_ti"], ICC_TI)
-            st.markdown(f"- Indeks TI jest stabilniejszy: **{lo:.0f}.–{hi:.0f}. percentyl** "
-                        f"(powtarzalność {pl(ICC_TI)}).")
-        st.markdown("- Do oceny jednej osoby uśrednij kilka nagrań (widok *Pomiar powtarzany*); "
-                    "do porównania grup wystarczy jedno na osobę (widok *Badanie*).")
-        with st.expander("Jakość nagrania"):
+            st.markdown(f"- The TI index is steadier: **{lo:.0f}th–{hi:.0f}th percentile** "
+                        f"(repeatability {pl(ICC_TI)}).")
+        st.markdown("- To judge one person, average several recordings (*Repeated recordings* page); "
+                    "to compare groups, one per person is enough (*Whole study* page).")
+        with st.expander("Recording quality"):
             r = mod["recording"]
-            st.markdown(f"{pl(r['duration_min'], '.1f')} min, {pl(r['sampling_hz'], '.1f')} Hz, {r['pairs']} par optod, "
-                        f"braki {pl(r['missing_samples_pct'], '.1f')}% próbek (uzupełnione), "
-                        f"martwe pary: {', '.join(r['dead_pairs']) or 'brak'}; "
-                        f"{mod['beats_used']} uderzeń serca, TI z {mod['arterial_timing']['channels_used']} kanałów.")
-            for wmsg in mod["warnings"] or ["Brak ostrzeżeń."]:
+            st.markdown(f"{pl(r['duration_min'], '.1f')} min, {pl(r['sampling_hz'], '.1f')} Hz, {r['pairs']} sensor pairs, "
+                        f"missing {pl(r['missing_samples_pct'], '.1f')}% of samples (filled in), "
+                        f"dead pairs: {', '.join(r['dead_pairs']) or 'none'}; "
+                        f"{mod['beats_used']} heartbeats, TI from {mod['arterial_timing']['channels_used']} channels.")
+            for wmsg in mod["warnings"] or ["No warnings."]:
                 st.markdown(f"- {wmsg}")
 with tab2:
     a, b = st.columns([1.3, 1])
     with a:
         show(V.fig_two_axes(coh, res))
     with b:
-        st.subheader("Dwie niezależne informacje")
+        st.subheader("Two independent signals")
         st.markdown(
-            "- **Pionowo, regulacja:** wolny rytm naczyń, ok. raz na minutę. U osób trenujących ponad 3 h "
-            "tygodniowo jest średnio **1,49× silniejszy**; u sportowców w laserze dopplerowskim skóry 1,5× "
-            "(Kvernmo i in. 2003).\n"
-            "- **Poziomo, struktura:** indeks fali odbitej. W sztywniejszych tętnicach fala odbita wraca szybciej. "
-            "Rośnie z wiekiem już u osób w wieku 18–42 lat (r = +0,36), powtarzalność 0,95.\n"
-            "- **Osie są niezależne** (korelacja ok. 0): trening i wiek zostawiają w sygnale dwa różne ślady.")
-st.warning(V.DISCLAIMER + " Pokazuje trend w grupie, nie liczbę godzin treningu ani sztywność tętnic konkretnej osoby.")
+            "- **Vertical, regulation:** the slow vessel wave, about once a minute. In people training over 3 h "
+            "a week it is on average **1.49× stronger**; in athletes (laser Doppler of the skin) 1.5× "
+            "(Kvernmo et al. 2003).\n"
+            "- **Horizontal, structure:** the pulse echo index. In stiffer arteries the echo comes back sooner. "
+            "It rises with age even at 18–42 (r = +0.36), repeatability 0.95.\n"
+            "- **The axes are independent** (correlation about 0): training and age leave two different traces.")
+st.warning(V.DISCLAIMER + " It shows a group trend, not the exact training or artery stiffness of one person.")

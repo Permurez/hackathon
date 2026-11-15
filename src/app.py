@@ -17,11 +17,11 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import style  # noqa: E402
 
-st.set_page_config(page_title="Puls pod czepkiem", page_icon="🫀", layout="wide")
+st.set_page_config(page_title="Pulse Under the Cap", page_icon="🫀", layout="wide")
 style.apply()
 st.navigation([
-    st.Page(HERE / "page_recording.py", title="Nagranie", icon=":material/monitor_heart:", default=True),
-    st.Page(HERE / "page_predict.py", title="Przewidywanie aktywności", icon=":material/directions_run:"),
-    st.Page(HERE / "page_study.py", title="Badanie: wiele nagrań", icon=":material/groups:"),
-    st.Page(HERE / "page_repeat.py", title="Pomiar powtarzany", icon=":material/repeat:"),
+    st.Page(HERE / "page_recording.py", title="Recording", icon=":material/monitor_heart:", default=True),
+    st.Page(HERE / "page_predict.py", title="Activity estimate", icon=":material/directions_run:"),
+    st.Page(HERE / "page_study.py", title="Whole study", icon=":material/groups:"),
+    st.Page(HERE / "page_repeat.py", title="Repeated recordings", icon=":material/repeat:"),
 ]).run()

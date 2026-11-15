@@ -23,16 +23,24 @@ r, p = pearsonr(t.age, t.TI_full)
 ax.set_xlabel("wiek [lata]"); ax.set_ylabel("indeks fali odbitej TI [1/s]")
 ax.set_title(f"Fala odbita wraca szybciej u starszych\nr = {r:+.2f}, p = {p:.3f}, n = {len(t)}, zdrowi bez leków", fontsize=11, color=INK)
 fig.tight_layout(); fig.savefig(ROOT / "fig_ti_age.png", dpi=150)
-# 2. endothelial band by activity level
-fig, ax = plt.subplots(figsize=(6.4, 4.4), facecolor="white")
-lv = sorted(d.activity.unique()); lab = {0.0: "brak", 0.32: "lekka\nregularnie", 1.06: "aeroby\n<1 h/tydz", 1.76: "aeroby\n1–3 h/tydz", 3.03: "aeroby\n>3 h/tydz"}
-for i, a in enumerate(lv):
-    y = 100 * d[d.activity == a].l30_hbo_endothelial_rel
-    ax.scatter(np.full(len(y), i) + np.random.default_rng(i).uniform(-0.12, 0.12, len(y)), y, s=30, color=ORANGE if a == lv[-1] else MUTED, alpha=0.75)
-    ax.plot([i - 0.25, i + 0.25], [y.median()] * 2, color=INK, lw=2.5)
-    ax.text(i, ax.get_ylim()[1] if False else y.max() + 2, f"n={len(y)}", ha="center", fontsize=9, color=MUTED)
+# 2. endothelial band by activity level (Polish and English versions)
+def endo_figure(lab, ylabel, title, out):
+    fig, ax = plt.subplots(figsize=(6.4, 4.4), facecolor="white")
+    lv = sorted(d.activity.unique())
+    for i, a in enumerate(lv):
+        y = 100 * d[d.activity == a].l30_hbo_endothelial_rel
+        ax.scatter(np.full(len(y), i) + np.random.default_rng(i).uniform(-0.12, 0.12, len(y)), y, s=30, color=ORANGE if a == lv[-1] else MUTED, alpha=0.75)
+        ax.plot([i - 0.25, i + 0.25], [y.median()] * 2, color=INK, lw=2.5)
+        ax.text(i, y.max() + 2, f"n={len(y)}", ha="center", fontsize=9, color=MUTED)
+    ax.set_xticks(range(len(lv)), [lab.get(a, a) for a in lv], fontsize=9)
+    ax.set_ylabel(ylabel); ax.set_title(title, fontsize=11, color=INK)
+    fig.tight_layout(); fig.savefig(ROOT / out, dpi=150)
+
 r, p = spearmanr(d.activity, d.l30_hbo_endothelial_rel)
-ax.set_xticks(range(len(lv)), [lab.get(a, a) for a in lv], fontsize=9)
-ax.set_ylabel("moc pasma śródbłonkowego [% mocy]"); ax.set_title(f"Silniejsze falowanie naczyń u trenujących (ρ = {r:+.2f}, p < 0,001)", fontsize=11, color=INK)
-fig.tight_layout(); fig.savefig(ROOT / "fig_endothelial_activity.png", dpi=150)
-print("-> fig_ti_age.png, fig_endothelial_activity.png")
+endo_figure({0.0: "brak", 0.32: "lekka\nregularnie", 1.06: "aeroby\n<1 h/tydz", 1.76: "aeroby\n1–3 h/tydz", 3.03: "aeroby\n>3 h/tydz"},
+            "moc pasma śródbłonkowego [% mocy]", f"Silniejsze falowanie naczyń u trenujących (ρ = {r:+.2f}, p < 0,001)",
+            "fig_endothelial_activity.png")
+endo_figure({0.0: "none", 0.32: "light,\nregularly", 1.06: "aerobic\n<1 h/week", 1.76: "aerobic\n1–3 h/week", 3.03: "aerobic\n>3 h/week"},
+            "slow vessel waves [% of signal]", f"Stronger vessel waves in people who train (ρ = {r:+.2f}, p < 0.001)",
+            "fig_endothelial_activity_en.png")
+print("-> fig_ti_age.png, fig_endothelial_activity.png, fig_endothelial_activity_en.png")
