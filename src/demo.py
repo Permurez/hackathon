@@ -88,8 +88,9 @@ def main():
     out = ROOT / f"demo_{path.stem}.png"
     fig.savefig(out, dpi=120)
     print(f"figure -> {out}")
-    if "--show" in sys.argv:
-        plt.show()
+    if "--show" in sys.argv:  # this Python has no GUI toolkit: open the saved PNG in the system image viewer
+        import subprocess
+        subprocess.Popen(["xdg-open", str(out)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 if __name__ == "__main__":
