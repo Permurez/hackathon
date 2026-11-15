@@ -15,7 +15,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
+from scipy import stats
+from scipy.special import expit
 from sklearn.linear_model import LogisticRegression
+from statsmodels.miscmodels.ordinal_model import OrderedModel
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import LeaveOneOut, StratifiedKFold, cross_val_predict
 from sklearn.pipeline import make_pipeline
@@ -37,6 +40,9 @@ SETS = {
     "wszystko (pasmo, tętno, TI, wiek, płeć, BMI)": ["band", "hr", "TI", "age", "sex_male", "bmi"],
 }
 LEVELS = ["niski", "średni", "wysoki"]
+LEVELS_WITH = ["niskim", "średnim", "wysokim"]   # "z ... wynikiem"
+LV3 = ["poniżej 1 h/tydz", "1–3 h/tydz", "ponad 3 h/tydz"]   # questionnaire 0-1.06 / 1.76 / 3.03
+RAMP3 = ["#9ec5f4", "#3987e5", "#184f95"]                   # ordinal: light -> dark = less -> more training
 
 
 def pl(v, f=".2f") -> str:
@@ -82,6 +88,39 @@ def evaluate(d: pd.DataFrame):
     lvl = np.digitize(loo_band, edges)
     calib = [(int((lvl == k).sum()), float(y[lvl == k].mean())) for k in range(3)]
     return pd.DataFrame(rows), loo_band, edges, calib
+
+
+def ord_probs(params, z):
+    """P(level 0, 1, 2) of an ordinal logit with one predictor; statsmodels params = [beta, cut1, log(cut2 - cut1)]."""
+    b, c1, c2 = params[0], params[1], params[1] + np.exp(params[2])
+    lo, hi = expit(c1 - b * z), expit(c2 - b * z)
+    return np.array([lo, hi - lo, 1 - hi])
+
+
+@st.cache_data(show_spinner=False)
+def ordinal(d: pd.DataFrame):
+    """Three activity levels from the band: leave-one-out probabilities, full fit, calibration by model tertile."""
+    y = np.where(d.activity >= 3.03, 2, np.where(d.activity >= 1.76, 1, 0))
+    x = d.band.to_numpy(float)
+    n = len(x)
+    P = np.zeros((n, 3))
+    for i in range(n):
+        m = np.ones(n, bool)
+        m[i] = False
+        mu, sd = x[m].mean(), x[m].std()
+        r = OrderedModel(y[m], ((x[m] - mu) / sd)[:, None], distr="logit").fit(method="bfgs", disp=False)
+        P[i] = ord_probs(np.asarray(r.params), (x[i] - mu) / sd)
+    mu, sd = x.mean(), x.std()
+    full = OrderedModel(y, ((x - mu) / sd)[:, None], distr="logit").fit(method="bfgs", disp=False)
+    ev = P @ np.arange(3)
+    edges = np.quantile(ev, [1 / 3, 2 / 3])
+    lvl = np.digitize(ev, edges)
+    table = np.array([np.bincount(y[lvl == k], minlength=3) / max(int((lvl == k).sum()), 1) for k in range(3)])
+    rho, p = stats.spearmanr(ev, y)
+    summary = dict(rho=float(rho), p=float(p), acc=float((P.argmax(1) == y).mean()), base=float((y == 2).mean()),
+                   counts=[int((y == k).sum()) for k in range(3)], tert=[int((lvl == k).sum()) for k in range(3)],
+                   edges=[float(e) for e in edges])
+    return y, P, (float(mu), float(sd), np.asarray(full.params)), table, summary
 
 
 # ---------------------------------------------------------------- data + model
@@ -173,6 +212,49 @@ with b:
     ax.set_title("Czy wynik modelu się sprawdza?", fontsize=10)
     fig.tight_layout()
     st.pyplot(fig, clear_figure=True)
+
+# ---------------------------------------------------------------- finer: three levels
+st.subheader("Dokładniej: ile godzin tygodniowo?")
+y3, P3, (mu3, sd3, par3), table3, s3 = ordinal(d)
+p3 = P3[i] if truth is not None else ord_probs(par3, (band - mu3) / sd3)
+m1, m2, m3 = st.columns(3)
+for col, lab, v in zip((m1, m2, m3), LV3, p3):
+    col.metric(lab, f"{100 * v:.0f}%")
+t3 = int(np.digitize([p3 @ np.arange(3)], s3["edges"])[0])
+st.markdown(f"**Szacunek modelu dla tej osoby:** {100 * p3[0]:.0f}% poniżej 1 h, {100 * p3[1]:.0f}% 1–3 h, "
+            f"{100 * p3[2]:.0f}% ponad 3 h tygodniowo. **W danych, wśród osób z {LEVELS_WITH[t3]} wynikiem (n = "
+            f"{s3['tert'][t3]}), faktycznie:** {100 * table3[t3, 0]:.0f}% / {100 * table3[t3, 1]:.0f}% / "
+            f"{100 * table3[t3, 2]:.0f}%. Przy skrajnych wynikach model jest pewniejszy, niż pozwalają dane; "
+            "bardziej wiarygodne są liczby z danych.")
+a, b = st.columns([1.35, 1])
+with a:
+    fig, ax = plt.subplots(figsize=(7.2, 3.0))
+    left = np.zeros(3)
+    for k in range(3):
+        ax.barh(LEVELS, 100 * table3[:, k], left=left, color=RAMP3[k], edgecolor="white", linewidth=2, label=LV3[k])
+        for row in range(3):
+            v = 100 * table3[row, k]
+            if v >= 5:
+                ax.text(left[row] + v / 2, row, f"{v:.0f}%", ha="center", va="center", fontsize=9,
+                        color=V.INK if k == 0 else "white")
+        left += 100 * table3[:, k]
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("faktyczna odpowiedź w ankiecie [% osób]")
+    ax.set_ylabel("wynik modelu")
+    ax.set_title("Czy szacowany poziom się sprawdza? (osoby przewidziane bez siebie)", fontsize=10)
+    ax.legend(fontsize=8, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.32), frameon=False)
+    fig.tight_layout()
+    st.pyplot(fig, clear_figure=True)
+with b:
+    st.markdown(
+        f"- **Kolejność się zgadza:** szacowany poziom rośnie razem z prawdziwym (ρ = {pl(s3['rho'])}, "
+        f"p = {pl(s3['p'], '.3f')}). Przy niskim wyniku modelu {100 * table3[0, 0]:.0f}% osób trenuje poniżej 1 h, "
+        f"przy wysokim {100 * table3[2, 0]:.0f}%.\n"
+        f"- **Dokładnej kategorii jeszcze nie:** trafia w {100 * s3['acc']:.0f}%, tyle co zgadywanie zawsze "
+        f"„ponad 3 h” ({100 * s3['base']:.0f}%).\n"
+        f"- **Dlaczego:** ankieta ma 5 przedziałów, w grupie {s3['counts'][0]} / {s3['counts'][1]} / "
+        f"{s3['counts'][2]} osób na trzech poziomach. Do godzin co do jednej potrzebny jest pomiar ciągły "
+        "(np. tydzień z akcelerometrem) i więcej osób; to proof of concept.")
 
 # ---------------------------------------------------------------- honesty
 st.subheader("Czy więcej danych pomaga przewidywać?")
