@@ -21,11 +21,12 @@ pip install -r requirements.txt
 streamlit run src/app.py                             # aplikacja: panel badacza fNIRS, trzy widoki
 python src/demo.py dane/infopack_and_data/fnirs_high_freq_supine/data/baseline/17_PK_BS_2025-08-11-12-19-59.snirf --show
 ```
-Aplikacja (`src/app.py`) ma trzy widoki, wszystkie na tym samym module `plugin/fnirs_vascular`:
+Aplikacja (`src/app.py`) ma cztery widoki, wszystkie na tym samym module `plugin/fnirs_vascular`:
 
 | Widok | Wejście | Co pokazuje |
 |---|---|---|
 | **Nagranie** (`src/page_recording.py`) | jeden plik .snirf | widmo, wolny rytm naczyń, uśredniona fala tętna i TI, pozycja na tle zdrowej grupy (18–42 l. bez leków, n = 52), model aktywności (AUC 0,67, leave-one-out), wnioski z przedziałem niepewności, jakość nagrania |
+| **Przewidywanie aktywności** (`src/page_predict.py`) | jeden plik .snirf lub osoba z zestawu | czy osoba trenuje > 3 h/tydz: model na samym paśmie (33/52 trafień leave-one-out wobec 28/52 przy zgadywaniu), kalibracja (35 / 53 / 72% faktycznie trenuje przy niskim / średnim / wysokim wyniku), porównanie z modelami na wieku, płci, BMI, tętnie i TI |
 | **Badanie** (`src/page_study.py`) | folder nagrań + grupy | tabela miar dla każdego uczestnika, porównanie dwóch grup z wnioskiem („grupy różnią się naczyniowo, uwzględnij jako zmienną kontrolną”), eksport CSV |
 | **Pomiar powtarzany** (`src/page_repeat.py`) | kilka nagrań tej samej osoby | powtarzalność (ICC), ile nagrań uśredniać, najmniejsza wykrywalna zmiana; demo na DOT (17 osób × 4 spoczynki) |
 
@@ -57,6 +58,7 @@ fnirs-vascular folder_badania/ --out wyniki.csv   # wszystkie .snirf w folderze 
 | test hipotezy (trend, regresja porządkowa, AUC, falsyfikacja) | `python src/hypothesis_endo.py` | wydruk |
 | odporność: multiverse, szum, 5000 losowych hipotez | `python src/multiverse.py`, `src/sensitivity.py`, `src/random_hypotheses.py` | csv + wydruk |
 | wykresy na slajdy | `python src/figures.py` | `fig_*.png` |
+| co musi wyjść w kolejnych badaniach (symulacje na danych syntetycznych) | `python src/simulate_future.py` | wydruk + `fig_future_studies.png` |
 
 ## Pliki
 
