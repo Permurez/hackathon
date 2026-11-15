@@ -154,7 +154,7 @@ with tab1:
             lo, hi = pct_range(sc["pct_ti"], ICC_TI)
             st.markdown(f"- The TI index is steadier: **{lo:.0f}th–{hi:.0f}th percentile** "
                         f"(repeatability {pl(ICC_TI)}).")
-        st.markdown("- To judge one person, average several recordings (*Repeated recordings* page); "
+        st.markdown("- To judge one person, average several recordings (*One-recording reliability* page); "
                     "to compare groups, one per person is enough (*Whole study* page).")
         with st.expander("Recording quality"):
             r = mod["recording"]

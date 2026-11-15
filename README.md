@@ -77,7 +77,7 @@ streamlit run src/app.py                # the app, from the repository root
 
 **The app** has four views: *Recording* (signal, spectrum, pulse wave, quality), *Activity estimate* (the profile
 above and the training estimate), *Whole study* (a folder of recordings, two-group comparison, CSV export) and
-*Repeated recordings* (how many recordings to average for one person).
+*One-recording reliability* (upload one file: its value and how much a repeat could differ).
 
 **The plug-in module** (`plugin/`, see [`plugin/README.md`](plugin/README.md)): `.snirf` in, JSON out, 0.2 s per
 recording, only numpy / scipy / h5py, values identical to the analysis.

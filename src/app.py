@@ -23,5 +23,5 @@ st.navigation([
     st.Page(HERE / "page_recording.py", title="Recording", icon=":material/monitor_heart:", default=True),
     st.Page(HERE / "page_predict.py", title="Activity estimate", icon=":material/directions_run:"),
     st.Page(HERE / "page_study.py", title="Whole study", icon=":material/groups:"),
-    st.Page(HERE / "page_repeat.py", title="Repeated recordings", icon=":material/repeat:"),
+    st.Page(HERE / "page_repeat.py", title="One-recording reliability", icon=":material/verified:"),
 ]).run()

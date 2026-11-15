@@ -53,17 +53,15 @@ def k_needed(icc, target):
     return int(np.ceil(target * (1 - icc) / (icc * (1 - target))))
 
 
-st.title("Repeated recordings: how many do you need?")
-style.hero("Is one recording enough? Here you see how much one person’s result changes between "
-           "recordings on one day, how many recordings to average, and what change, e.g. after training, is more "
-           "than chance.",
-           ["Pick a person: 4 recordings from one day", "See the spread of their results next to others",
-            "Read how many recordings to average"])
+st.title("How reliable is one recording?")
+style.hero("Upload one recording: you get its vessel-wave value and the range a repeat recording of the same "
+           "person would most likely fall in, so you know how much to trust a single result.",
+           ["Upload one .snirf recording in the left panel", "Read its value and the likely range of a repeat",
+            "See what it takes to track one person over time"])
 
-src = st.sidebar.radio("Recordings", ["DOT dataset (17 people × 4 rests in one day)",
-                                    "Upload several recordings of one person"])
+src = st.sidebar.radio("Data", ["Upload one recording", "Example data (DOT dataset)"])
 
-if src.startswith("DOT"):
+if src.startswith("Example"):
     paths = sorted(str(p) for p in DOT.glob("*_RS*.snirf"))
     if not paths:
         st.error("No DOT data. Run ./download_data.sh.")
@@ -136,34 +134,31 @@ if src.startswith("DOT"):
     st.caption("DOT data: sitting, a different sensor layout than the reference group, so raw values only (no percentiles). "
                "Band computed on long channels with a clear heartbeat; 18 Hz sampling is too slow for TI.")
 else:
-    ups = st.sidebar.file_uploader(".snirf recordings of one person", type=["snirf"], accept_multiple_files=True)
-    if not ups:
-        st.info("Upload one or more resting recordings of the same person.")
+    up = st.sidebar.file_uploader("One .snirf recording (about 10 min of rest)", type=["snirf"])
+    if up is None:
+        st.info("Upload one resting .snirf recording in the left panel.")
         st.stop()
-    tmp = Path(tempfile.mkdtemp(prefix="fnirs_repeat_"))
-    paths = []
-    for u in ups:
-        (tmp / u.name).write_bytes(u.getvalue())
-        paths.append(str(tmp / u.name))
-    res = [r for r in run_many(tuple(paths)) if "error" not in r]
+    tmp = Path(tempfile.mkdtemp(prefix="fnirs_one_")) / up.name
+    tmp.write_bytes(up.getvalue())
+    res = [r for r in run_many((str(tmp),)) if "error" not in r]
     if not res:
-        st.error("None of the files could be read as a resting fNIRS recording.")
+        st.error("This file could not be read as a resting fNIRS recording.")
         st.stop()
-    x = np.array([100 * r["vascular_regulation"]["endothelial_band_share"] for r in res])
+    r = res[0]
+    v = 100 * r["vascular_regulation"]["endothelial_band_share"]
     # this view uses only the vessel wave: layout and pulse-timing warnings do not apply here
-    notes = [" | ".join(w for w in r["warnings"] if not w.startswith(("Montage differs", "Sampling"))) or "OK"
-             for r in res]
-    st.dataframe(pd.DataFrame({"file": [r["file"] for r in res], "vessel wave [% of signal]": x.round(1),
-                               "check": notes}), hide_index=True, width="stretch")
+    notes = [w for w in r["warnings"] if not w.startswith(("Montage differs", "Sampling"))]
+    lo, hi = max(v - SW_MODULE, 0.0), v + SW_MODULE
     k75 = k_needed(ICC_MODULE, 0.75)
     c1, c2, c3 = st.columns(3)
-    c1.metric("Vessel wave" if len(x) == 1 else f"Mean of {len(x)} recordings", f"{pl(x.mean(), '.1f')} %")
-    c2.metric("Expected spread of one recording", f"± {pl(SW_MODULE, '.0f')} pp" if len(x) == 1
-              else f"± {pl(x.std(ddof=1), '.1f')} pp (measured)")
-    c3.metric("Recordings for a reliable value", f"{k75}")
-    rel = spearman_brown(ICC_MODULE, len(x))
+    c1.metric("Vessel wave", f"{pl(v, '.1f')} %")
+    c2.metric("A repeat would likely give", f"{pl(lo, '.0f')}–{pl(hi, '.0f')} %")
+    c3.metric("Repeatability of one recording", pl(ICC_MODULE))
     st.markdown(
-        f"- **Repeatability of this result:** {pl(rel)} (with {len(x)} recording{'s' if len(x) > 1 else ''}; "
-        "0.75 is good).\n"
-        f"- One recording varies by about ±{pl(SW_MODULE, '.0f')} pp within a day (17 people × 4 rests). "
-        f"Average **{k75} recordings** of this person to track a change, e.g. before and after training.")
+        f"- **What this means:** the same person recorded again the same day usually lands within "
+        f"±{pl(SW_MODULE, '.0f')} percentage points of this value.\n"
+        "- **Good for:** comparing groups of people, where one recording per person is enough.\n"
+        f"- **To track one person over time** (e.g. before and after training), average {k75} recordings: "
+        "repeatability then reaches 0.75.")
+    st.caption(f"{r['file']} · {pl(r['recording']['duration_min'], '.1f')} min · "
+               + (" | ".join(notes) if notes else "recording OK"))
