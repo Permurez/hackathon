@@ -41,6 +41,8 @@ SETS = {
 }
 LEVELS = ["niski", "średni", "wysoki"]
 LEVELS_WITH = ["niskim", "średnim", "wysokim"]   # "z ... wynikiem"
+# questionnaire answer -> typical aerobic hours per week: bin midpoints, the open "> 3 h" bin taken as 4 h
+HOURS = {0.0: 0.0, 0.32: 0.5, 1.06: 0.5, 1.76: 2.0, 3.03: 4.0}
 LV3 = ["poniżej 1 h/tydz", "1–3 h/tydz", "ponad 3 h/tydz"]   # questionnaire 0-1.06 / 1.76 / 3.03
 
 
@@ -116,10 +118,20 @@ def ordinal(d: pd.DataFrame):
     lvl = np.digitize(ev, edges)
     table = np.array([np.bincount(y[lvl == k], minlength=3) / max(int((lvl == k).sum()), 1) for k in range(3)])
     rho, p = stats.spearmanr(ev, y)
+    hrs = np.round(d.activity, 2).map(HOURS).to_numpy(float)          # the questionnaire answer in hours
+    rep = np.array([hrs[y == k].mean() for k in range(3)])             # typical hours of each of the 3 levels
+    loo_mean = (hrs.sum() - hrs) / (n - 1)                             # baseline: the group mean, person left out
     summary = dict(rho=float(rho), p=float(p), acc=float((P.argmax(1) == y).mean()), base=float((y == 2).mean()),
                    counts=[int((y == k).sum()) for k in range(3)], tert=[int((lvl == k).sum()) for k in range(3)],
-                   edges=[float(e) for e in edges])
+                   edges=[float(e) for e in edges], rep=[float(v) for v in rep],
+                   mae=float(np.abs(P @ rep - hrs).mean()), mae_base=float(np.abs(loo_mean - hrs).mean()))
     return y, P, (float(mu), float(sd), np.asarray(full.params)), table, summary
+
+
+def hours_txt(h: float) -> str:
+    """Hours rounded to half an hour, Polish style: 'ok. 2,5 h', 'ok. 4 h'."""
+    r = round(h * 2) / 2
+    return "0 h" if r == 0 else f"ok. {pl(r, '.1f').replace(',0', '')} h"
 
 
 @st.cache_data(show_spinner=False)
@@ -138,10 +150,10 @@ def breath_hold() -> pd.DataFrame:
 # ---------------------------------------------------------------- data + model
 st.title("Przewidywanie aktywności z jednego nagrania")
 style.hero("Jedno 10-minutowe nagranie, jeden profil: tętno, praca naczyń, reakcja na wstrzymanie oddechu i "
-           "szacunek, ile osoba trenuje. Przy każdej liczbie widać, czy to pomiar, porównanie z grupą, czy tylko "
-           "wskazówka, a przy przewidywaniu: jak często model ma rację.",
+           "przybliżona liczba godzin treningu w tygodniu. Przy każdej liczbie widać, czy to pomiar, porównanie z "
+           "grupą, czy tylko wskazówka, a przy godzinach: o ile może się mylić.",
            ["Wybierz osobę z zestawu albo wgraj plik .snirf", "Przeczytaj profil na górze",
-            "Niżej: czy trenuje ponad 3 h tygodniowo i dokładniej, ile"])
+            "Niżej: ile mniej więcej godzin tygodniowo trenuje"])
 with st.spinner("Przygotowuję model (pierwsze uruchomienie liczy 59 nagrań)…"):
     d = training_table()
     table, loo_band, edges, calib = evaluate(d)
@@ -174,10 +186,9 @@ else:
     for wmsg in r["warnings"]:
         st.warning(wmsg)
 
-level = int(np.digitize([p], edges)[0])
-n_lvl, share = calib[level]
 y3, P3, (mu3, sd3, par3), table3, s3 = ordinal(d)
 p3 = P3[i] if truth is not None else ord_probs(par3, (band - mu3) / sd3)
+est = float(p3 @ np.array(s3["rep"]))
 t3 = int(np.digitize([p3 @ np.arange(3)], s3["edges"])[0])
 mod = module_result(str(V.BASE / d.file[i])) if truth is not None else r
 bhs = breath_hold()
@@ -191,8 +202,8 @@ row1, row2 = st.columns(3), st.columns(3)
 B = style.badge
 row1[0].metric("Tętno spoczynkowe", f"{mod['heart_rate_bpm']:.0f} /min")
 row1[0].caption(f"{B('pomiar')}u dorosłych w spoczynku zwykle 60–100/min", unsafe_allow_html=True)
-row1[1].metric("Aktywność", f"{100 * table3[t3, 2]:.0f}% trenuje > 3 h/tydz")
-row1[1].caption(f"{B('wskazowka')}tyle osób z {LEVELS_WITH[t3]} wynikiem faktycznie trenuje ponad 3 h tygodniowo "
+row1[1].metric("Trening aerobowy", f"{hours_txt(est)} / tydz")
+row1[1].caption(f"{B('wskazowka')}przybliżenie z jednego nagrania; typowy błąd ±{pl(s3['mae'], '.1f')} h "
                 "(szczegóły niżej)", unsafe_allow_html=True)
 row1[2].metric("Jakość nagrania", "bez ostrzeżeń" if not mod["warnings"] else f"ostrzeżenia: {len(mod['warnings'])}")
 row1[2].caption(f"{B('pomiar')}{pl(q['duration_min'], '.1f')} min, {mod['beats_used']} uderzeń serca, braki "
@@ -215,39 +226,30 @@ else:
 st.caption("Czego nie pokazujemy: częstości oddechu. Z sygnału spoczynkowego na leżąco nie dało się jej tu "
            "wiarygodnie wyznaczyć (sprawdziliśmy), więc jej nie podajemy.")
 
-# ---------------------------------------------------------------- answer
-st.subheader("Czy ta osoba trenuje ponad 3 h tygodniowo?")
-c1, c2 = st.columns(2)
-c1.metric("Przewidywanie", "trenuje > 3 h/tydz" if p >= 0.5 else "mniej niż 3 h/tydz")
-c2.metric("Prawdopodobieństwo", f"{100 * p:.0f}%")
-st.markdown(f"**Co to znaczy:** wynik tej osoby jest **{LEVELS[level]}** na tle grupy. Spośród {n_lvl} osób z "
-            f"podobnym wynikiem **{100 * share:.0f}% faktycznie trenuje** ponad 3 h tygodniowo "
-            f"(w całej grupie {100 * y.mean():.0f}%).")
+# ---------------------------------------------------------------- hours per week
+st.subheader("Ile godzin tygodniowo trenuje ta osoba?")
+h1, h2 = st.columns([1, 2])
+h1.metric("Przybliżony trening aerobowy", f"{hours_txt(est)} / tydz")
+h1.caption(f"{B('wskazowka')}typowy błąd ±{pl(s3['mae'], '.1f')} h", unsafe_allow_html=True)
+with h2:
+    m1, m2, m3 = st.columns(3)
+    for col, lab, v in zip((m1, m2, m3), LV3, p3):
+        col.metric(lab, f"{100 * v:.0f}%")
+    st.caption("Prawdopodobieństwo, że osoba trafia do każdego przedziału z ankiety.")
 if truth is not None:
-    act = V.ACT.get(truth.activity, "?")
-    ok = (p >= 0.5) == bool(truth.active)
-    st.markdown(f"**Ankieta tej osoby:** {act} (wiek {int(truth.age)} l.) → model "
-                f"{'**trafił**' if ok else '**nie trafił**'}.")
-
-# ---------------------------------------------------------------- finer: three levels
-st.subheader("Dokładniej: ile godzin tygodniowo?")
-m1, m2, m3 = st.columns(3)
-for col, lab, v in zip((m1, m2, m3), LV3, p3):
-    col.metric(lab, f"{100 * v:.0f}%")
-st.markdown(f"**Szacunek modelu dla tej osoby:** {100 * p3[0]:.0f}% poniżej 1 h, {100 * p3[1]:.0f}% 1–3 h, "
-            f"{100 * p3[2]:.0f}% ponad 3 h tygodniowo. **W danych, wśród osób z {LEVELS_WITH[t3]} wynikiem (n = "
-            f"{s3['tert'][t3]}), faktycznie:** {100 * table3[t3, 0]:.0f}% / {100 * table3[t3, 1]:.0f}% / "
-            f"{100 * table3[t3, 2]:.0f}%. Przy skrajnych wynikach model jest pewniejszy, niż pozwalają dane; "
-            "bardziej wiarygodne są liczby z danych.")
+    st.markdown(f"**Ankieta tej osoby:** {V.ACT.get(truth.activity, '?')} (wiek {int(truth.age)} l.), czyli "
+                f"{hours_txt(HOURS[round(float(truth.activity), 2)])} tygodniowo.")
+rep = s3["rep"]
 st.markdown(
-        f"- **Kolejność się zgadza:** szacowany poziom rośnie razem z prawdziwym (ρ = {pl(s3['rho'])}, "
-        f"p = {pl(s3['p'], '.3f')}). Przy niskim wyniku modelu {100 * table3[0, 0]:.0f}% osób trenuje poniżej 1 h, "
-        f"przy wysokim {100 * table3[2, 0]:.0f}%.\n"
-        f"- **Dokładnej kategorii jeszcze nie:** trafia w {100 * s3['acc']:.0f}%, tyle co zgadywanie zawsze "
-        f"„ponad 3 h” ({100 * s3['base']:.0f}%).\n"
-        f"- **Dlaczego:** ankieta ma 5 przedziałów, w grupie {s3['counts'][0]} / {s3['counts'][1]} / "
-        f"{s3['counts'][2]} osób na trzech poziomach. To proof of concept: dokładniejszy model wymaga więcej osób "
-        "w danych uczących; użytkownik nadal robi tylko to jedno nagranie.")
+    "- **Jak liczymy:** z jednej liczby z nagrania (wolny rytm naczyń) model wylicza prawdopodobieństwo każdego "
+    f"przedziału z ankiety, a przybliżenie to ich średnia ważona typowych wartości: {pl(rep[0], '.1f')} h, "
+    f"{pl(rep[1], '.0f')} h i {pl(rep[2], '.0f')} h tygodniowo.\n"
+    f"- **Jak dokładnie:** na osobach, których model nie widział, myli się średnio o ±{pl(s3['mae'], '.1f')} h; "
+    f"wpisanie każdemu średniej grupy myli się o ±{pl(s3['mae_base'], '.1f')} h. Kolejność osób się zgadza "
+    f"(ρ = {pl(s3['rho'])}).\n"
+    "- **Granice:** ankieta nie odróżnia 4 od 10 godzin, więc „ponad 3 h” liczymy jako 4 h, a u osób, które nie "
+    f"trenują wcale, przybliżenie bywa zawyżone. To proof of concept na {len(d)} osobach; użytkownik zawsze robi "
+    "tylko to jedno nagranie.")
 
 # ---------------------------------------------------------------- honesty
 st.subheader("Które dane najlepiej przewidują trening?")

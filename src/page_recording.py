@@ -117,15 +117,13 @@ with st.status("Analiza nagrania…", expanded=False) as status:
     status.update(label=f"Gotowe: {res['file']} ({res['duration_min']:.1f} min)", state="complete")
 sc = V.score(res, coh)
 
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c4 = st.columns(3)
 c1.metric("Regulacja naczyń", f"wyżej niż {sc['pct_endo']:.0f}% osób",
           help="Siła wolnego rytmu naczyń (pasmo przypisywane śródbłonkowi) na tle zdrowej grupy 18–42 l.")
 c2.metric("Fala odbita (TI)", f"wyżej niż {sc['pct_ti']:.0f}% osób" if np.isfinite(sc["pct_ti"]) else "–",
           help="Wyżej = fala tętna wraca szybciej; w grupie rośnie z wiekiem. Dla jednej osoby to wskazówka.")
-c3.metric("Szansa na trening > 3 h/tydz", f"{100 * sc['prob_active']:.0f}%",
-          help="Model na jednym parametrze z fNIRS, sprawdzony na osobach, których nie widział (AUC 0,67).")
 c4.metric("Tętno spoczynkowe", f"{res['hr']:.0f} /min")
-for col, kind in ((c1, "grupa"), (c2, "grupa"), (c3, "wskazowka"), (c4, "pomiar")):
+for col, kind in ((c1, "grupa"), (c2, "grupa"), (c4, "pomiar")):
     col.caption(style.badge(kind), unsafe_allow_html=True)
 
 row = coh[coh.subject == res["subject"]]
@@ -146,7 +144,9 @@ with tab1:
     with b:
         st.subheader("Wnioski z tego nagrania")
         for line in V.interpret(res, sc):
-            st.markdown(f"- {line}")
+            if not line.startswith("Model"):
+                st.markdown(f"- {line}")
+        st.markdown("- Przybliżoną liczbę godzin treningu w tygodniu pokazuje widok *Przewidywanie aktywności*.")
         lo, hi = pct_range(sc["pct_endo"], ICC_BAND)
         st.markdown(f"- **Pewność:** przy powtórnym nagraniu rytm naczyń wypadłby zwykle między **{lo:.0f}. a "
                     f"{hi:.0f}. percentylem** (jedno nagranie, powtarzalność {pl(ICC_BAND)}).")
